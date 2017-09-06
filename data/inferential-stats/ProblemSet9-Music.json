@@ -19,6 +19,7 @@
         "is_population": false, 
         "mean": 28.0
     }, 
+    "samp_dependent": false,
     "dir": "p", 
     "alpha": 0.05, 
     "results_title": "memory"

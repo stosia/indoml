@@ -1,0 +1,42 @@
+{
+    "alpha": 0.05, 
+    "class": "IndependentTTesting", 
+    "dir": "t", 
+    "results_title": "results", 
+    "samp0": {
+        "is_population": false, 
+        "mean": 33.5, 
+        "members": [
+            40.0, 
+            36.0, 
+            20.0, 
+            32.0, 
+            45.0, 
+            28.0
+        ], 
+        "n": 6, 
+        "notes": "", 
+        "orig_mean": 33.5, 
+        "orig_sd": 8.893818077743664, 
+        "sd": 8.893818077743664, 
+        "title": "Drug A"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 31.2, 
+        "members": [
+            41.0, 
+            39.0, 
+            18.0, 
+            23.0, 
+            35.0
+        ], 
+        "n": 5, 
+        "notes": "", 
+        "orig_mean": 31.2, 
+        "orig_sd": 10.158740079360236, 
+        "sd": 10.158740079360236, 
+        "title": "Drug B"
+    }, 
+    "treatment_title": "treatment"
+}

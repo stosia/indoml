@@ -1,4 +1,5 @@
 import copy
+import csv
 import json
 import math
 import sys
@@ -8,6 +9,27 @@ from scipy import stats
 
 if sys.version_info >= (3, 2):
     raw_input = input
+
+
+def read_input(title, default=None, choices=None, optional=False):
+    msg = title
+    if choices:
+        msg += ' (%s)' % ('/'.join(choices))
+    msg += ':'
+    if default:
+        msg += ' [%s]' % (default)
+    msg += ' '
+
+    while True:
+        s = raw_input(msg).strip()
+        if default and not s:
+            s = default
+        if choices and s not in choices:
+            continue
+        if s or optional:
+            break
+
+    return s
 
 
 class StatTool:
@@ -69,7 +91,7 @@ class StatTool:
         #
         # FWIW sf = survival function
         pval = stats.t.sf(abs(t_statistic), df)
-        return pval
+        return pval * 2 if dir == StatTool.TWO_TAILED_TEST else pval
 
     @classmethod
     def z_critical_value(cls, alpha, dir):
@@ -103,8 +125,8 @@ class StatTool:
 
 class Sample:
     """Sample is an observation against a particular subject at one point in time."""
-    def __init__(self, is_population=None):
-        self.title = ''
+    def __init__(self, title='', is_population=None):
+        self.title = title
         """Optional title for this sample"""
 
         self.notes = ''
@@ -147,6 +169,8 @@ class Sample:
                 s += "Orig. Mean:          % .3f\n" % (self.orig_mean)
             else:
                 s += "Orig. Mean:           None\n"
+        if True:
+            s += "Sum of squared diffs:% .3f\n" % (self.sum_of_squared_diffs())
         if self.sd is not None:
             s += "SD:                  % .3f\n" % (self.sd)
             if self.orig_sd is not None:
@@ -183,9 +207,7 @@ class Sample:
 
     def input_samples(self, s=None):
         """Parse the samples if given in s, or input from console"""
-        while not s:
-            s = raw_input('Individual samples (space or comma separated): ').strip()
-
+        s = read_input('Individual samples (space or comma separated)')
         if ',' in s:
             self.members = s.split(',')
         else:
@@ -203,45 +225,30 @@ class Sample:
 
     def input_wizard(self, require_n=False, ref_pop=None):
         """Wizard to input the parameters from console."""
-        s = raw_input('The name of this sample? [default] ').strip()
-        if s and s != 'default':
+        s = read_input('The name of this sample', default=self.title, optional=True)
+        if s:
             self.title = s
 
         if self.is_population is None:
-            s = ''
-            while s not in ['y', 'n']:
-                s = raw_input('Treat as population (y/n)? [n] ').strip()
-                s = s.lower()
-                if not s:
-                    s = 'n'
+            s = read_input('Treat as population', default='n', choices=['y', 'n'])
             self.is_population = True if s == 'y' else False
 
         if not self.title:
             self.title = "population" if self.is_population else "sample"
 
-        s = ''
-        while s not in ['p', 'i']:
-            s = raw_input('Input parameters or individual sample (p/i)? [p] ').strip()
-            if not s:
-                s = 'p'
-
+        s = read_input('Input parameters or individual sample', default='p', choices=['p', 'i'])
         if s == 'p':
-            while True:
-                s = raw_input("n (number of data): ").strip()
-                if s:
-                    self.n = int(s)
-                if self.n is not None or not require_n:
-                    break
+            s = read_input('n (number of data)', optional=not require_n)
+            if s:
+                self.n = int(s)
 
-            while self.mean is None:
-                s = raw_input('Mean: ').strip()
-                if s:
-                    self.mean = self.orig_mean = float(s)
+            self.mean = self.orig_mean = float(read_input('Mean'))
 
             if ref_pop and (not ref_pop.is_population or ref_pop.sd is None):
                 ref_pop = None
 
-            s = raw_input('Standard deviation%s: ' % (' (skip to calculate from population)' if ref_pop else '')).strip()
+            title = 'Standard deviation%s: ' % (' (skip to calculate from population)' if ref_pop else '')
+            s = read_input(title)
             if s:
                 self.sd = self.orig_sd = float(s)
             elif ref_pop:
@@ -254,6 +261,12 @@ class Sample:
 
         return self
 
+    def sum_of_squared_diffs(self):
+        if self.members:
+            return sum([(x - self.mean) ** 2 for x in self.members])
+        else:
+            return -1
+
 
 class HypothesisTesting:
     """With a hypothesis testing, we are finding out if some results happen because
@@ -261,15 +274,28 @@ class HypothesisTesting:
     """
     def __init__(self):
         self.samp0 = None
+        """The first sample, is usually the population, or the pre-test sample"""
+
         self.samp1 = None
+        """The second sample, the post-test sample."""
 
         # Parameters
         self.alpha = 0.05
+        """Requested confidence level"""
+
         self.dir = None  # see StatTool.xxx_TEST constants
+        """Directionality of the test."""
+
+        # Expected difference
+        self.expected_difference = 0.0
+        """The expected difference between the two sample means."""
 
         # Description
         self.treatment_title = "treatment"
+        """The name of the treatment"""
+
         self.results_title = "results"
+        """The name of the dependent variable"""
 
     def load_from_dict(self, d):
         if d.get('samp0'):
@@ -283,6 +309,7 @@ class HypothesisTesting:
         # Parameters
         self.alpha = d.get('alpha', 0.05)
         self.dir = d.get('dir', None)
+        self.expected_difference = d.get('expected_difference', 0.0)
 
         # Description
         self.treatment_title = d.get('treatment_title', "treatment")
@@ -291,42 +318,50 @@ class HypothesisTesting:
         self._fix_samples()
 
     def _fix_samples(self):
-        """Decide if the two samples are dependent and we should do something
-        about it"""
-        if self.samp0.is_population == False and self.samp1.is_population == False and \
-           self.samp0.members and self.samp1.members:
-            print("Note: ")
-            print("   Looks like we have two samples. Assuming these are dependent samples.")
-            print("   Thus we will be using the difference instead.")
+        pass
 
-            members = [self.samp1.members[i] - self.samp0.members[i] for i in range(len(self.samp1.members))]
-            self.samp0.mean = 0.0
-            self.samp0.sd = None
-            self.samp0.notes = "mean and sd have been reset"
-            self.samp1.mean = Sample._calc_mean(members)
-            self.samp1.sd = Sample._calc_sd(members, self.samp1.is_population)
-            self.samp1.notes = "mean and sd are difference from sample-0"
-        elif self.samp0.is_population == False and self.samp1.is_population == False and \
-             self.samp0.orig_sd is not None and self.samp1.orig_sd is not None:
-            # Lesson 7 problem set 10a
-            print("Note: ")
-            print("   Looks like we have two samples. Assuming these are dependent samples.")
-            print("   Thus we will be using the difference instead.")
-            self.samp1.sd = self.standard_deviation_difference()
-            self.samp1.notes = "sd is difference from sample-0"
-            # self.samp0.sd = 0
-            # self.samp0.notes = "sd has been reset"
-
-
-    def input_wizard(self):
+    def input_wizard(self, csv_filename=None, independent_t_test=False):
         """Wizard to input the parameters from console."""
-        print("Input the first sample (samp0)")
-        self.samp0 = Sample().input_wizard()
+        if csv_filename:
+            with open(csv_filename) as f:
+                r = csv.reader(f, delimiter=",")
+                head = r.next()
+                if len(head) != 2:
+                    sys.stderr.write("Error: the CSV needs to have exactly two columns")
+                    sys.exit(1)
 
-        print("")
-        print("Input the second sample (samp1)")
-        self.samp1 = Sample(is_population=False).input_wizard(require_n=True,
-                                                              ref_pop=self.samp0 if self.samp0.is_population else None)
+                print("First sample: " + head[0])
+                self.samp0 = Sample(title=head[0])
+                self.samp0.is_population = read_input('Treat first sample as population', default='n', choices="yn") == 'y'
+                self.samp0.members = []
+
+                print("Second sample: " + head[1])
+                self.samp1 = Sample(title=head[1])
+                self.samp1.is_population = read_input('Treat second sample as population', default='n', choices="yn") == 'y'
+                self.samp1.members = []
+
+                for row in r:
+                    if len(row) >= 1:
+                        cell = row[0].strip()
+                        if cell:
+                            self.samp0.members.append(float(cell))
+                    if len(row) >= 2:
+                        cell = row[1].strip()
+                        if cell:
+                            self.samp1.members.append(float(cell))
+
+                self.samp0._update_parameters()
+                self.samp1._update_parameters()
+
+        else:
+            print("Input the first sample (samp0)")
+            self.samp0 = Sample(title='samp0').input_wizard()
+
+            print("")
+            print("Input the second sample (samp1)")
+            self.samp1 = Sample(title='samp1', is_population=False)
+            self.samp1.input_wizard(require_n=True,
+                                    ref_pop=self.samp0 if self.samp0.is_population else None)
 
         print("Mean difference: %.3f" % self.mean_difference())
 
@@ -334,23 +369,16 @@ class HypothesisTesting:
         self._fix_samples()
 
         print("")
-        s = raw_input("The name of the treatment ('%s'): " % self.treatment_title).strip()
-        if s:
-            self.treatment_title = s
-
-        s = raw_input("The name of the results ('%s'): " % self.results_title).strip()
-        if s:
-            self.results_title = s
+        if not independent_t_test:
+            self.treatment_title = read_input("The name of the treatment", default=self.treatment_title, optional=True)
+            self.results_title = read_input("The name of the results", default=self.results_title, optional=True)
 
         dirs = [StatTool.TWO_TAILED_TEST, StatTool.ONE_TAILED_NEGATIVE_TEST, StatTool.ONE_TAILED_POSITIVE_TEST]
-        self.dir = ''
-        while self.dir not in dirs:
-            self.dir = raw_input('Directionality: Two tailed (t), one tailed negative (n), or one tailed positive (p) (t/n/p)? [t] ').strip()
+        self.dir = read_input('Directionality: Two tailed (t), one tailed negative (n), or one tailed positive (p)',
+                              default=StatTool.TWO_TAILED_TEST, choices=dirs)
 
-        s = raw_input("Alpha: [%.3f] " % self.alpha).strip()
-        if s:
-            self.alpha = float(s)
-
+        self.alpha = float(read_input("Alpha", default='%.03f' % self.alpha))
+        self.expected_difference = float(read_input("Expected difference", default='0.0', optional=True))
         print("Critical value: %.3f" % self.critical())
         return self
 
@@ -378,7 +406,7 @@ class HypothesisTesting:
 
     def mean_difference(self):
         """The mean difference"""
-        return self.samp1.mean - self.samp0.mean
+        return self.samp1.mean - self.samp0.mean - self.expected_difference
 
     def standard_deviation_difference(self):
         """Standard deviation of the differences"""
@@ -486,6 +514,9 @@ class ZTesting(HypothesisTesting):
     def __init__(self):
         HypothesisTesting.__init__(self)
 
+    def _fix_samples(self):
+        pass
+
     def SEM(self):
         """The standard error"""
         return self.samp0.sd / math.sqrt(self.samp1.n)
@@ -530,13 +561,14 @@ class TTesting(HypothesisTesting):
     def __init__(self):
         HypothesisTesting.__init__(self)
 
+    def _fix_samples(self):
+        pass
+
     def df(self):
-        """Degrees of freedom"""
-        return self.samp1.n - 1
+        pass
 
     def SEM(self):
-        """Standard error of mean"""
-        return self.samp1.sd / math.sqrt(self.samp1.n)
+        pass
 
     def critical(self):
         """t-critical value for the specified confidence/alpha.
@@ -582,29 +614,136 @@ class TTesting(HypothesisTesting):
         print("r^2:                     % .3f" % self.r_squared())
 
 
+class DependentTTesting(TTesting):
+    """This hypothesis testing is used when we do not have the population
+    parameters."""
+    def __init__(self):
+        TTesting.__init__(self)
+
+    def _fix_samples(self):
+        """Decide if the two samples are dependent and we should do something
+        about it"""
+        samp_dependent = not self.samp0.is_population and not self.samp1.is_population
+        if samp_dependent and self.samp0.members and self.samp1.members:
+            members = [self.samp1.members[i] - self.samp0.members[i] for i in range(len(self.samp1.members))]
+            self.samp0.mean = 0.0
+            self.samp0.sd = None
+            self.samp0.notes = "mean and sd have been reset"
+            self.samp1.mean = Sample._calc_mean(members)
+            self.samp1.sd = Sample._calc_sd(members, self.samp1.is_population)
+            self.samp1.notes = "mean and sd are difference from sample-0"
+        elif samp_dependent and self.samp0.orig_sd is not None and self.samp1.orig_sd is not None:
+            self.samp1.sd = self.standard_deviation_difference()
+            self.samp1.notes = "sd is difference from sample-0"
+            # self.samp0.sd = 0
+            # self.samp0.notes = "sd has been reset"
+
+    def df(self):
+        """Degrees of freedom"""
+        return self.samp1.n - 1
+
+    def SEM(self):
+        """Standard error of mean"""
+        return self.samp1.sd / math.sqrt(self.samp1.n)
+
+
+class IndependentTTesting(TTesting):
+    """This hypothesis testing is used when we do not have the population
+    parameters. With the independent T-Testing, it is assumed that:
+    
+    1) the two samples are random samples from two independent populations,
+    2) the populations are approximately normal. This is less important
+       if n is large (>30)
+    3) the sample data can be used to estimate the population variance
+    4) the population variances are roughly equal
+    """
+    def __init__(self):
+        TTesting.__init__(self)
+
+    def _fix_samples(self):
+        pass
+
+    def df(self):
+        """Degrees of freedom"""
+        return self.samp0.n + self.samp1.n - 2
+
+    def pooled_variance(self):
+        """Get the pooled variance. The pool variance is used to calculate SEM
+        when we cannot assume that the size of the two samples are approximately
+        the same."""
+        # return (self.samp0.sum_of_squared_diffs() + self.samp1.sum_of_squared_diffs()) / self.df()
+        return (self.samp0.sd ** 2 * (self.samp0.n - 1) + self.samp1.sd ** 2 * (self.samp1.n - 1)) / self.df()
+
+    def uncorrected_SEM(self):
+        """(Uncorrected) Standard error of mean. This assumes that the two samples are
+        approximately the same size."""
+        return math.sqrt(self.samp0.sd ** 2 / float(self.samp0.n) + self.samp1.sd ** 2 / float(self.samp1.n))
+
+    def corrected_SEM(self):
+        """Standard error calculated using the pooled variance"""
+        sp = self.pooled_variance()
+        return math.sqrt(sp / float(self.samp0.n) + sp / float(self.samp1.n))
+
+    def SEM(self):
+        return self.corrected_SEM()
+
+    def spell_h0(self):
+        """Spell the null hypothesis"""
+        if self.dir == StatTool.TWO_TAILED_TEST:
+            return "\"%s\" = \"%s\"" % (self.samp0.title, self.samp1.title)
+        elif self.dir == StatTool.ONE_TAILED_POSITIVE_TEST:
+            return "\"%s\" <= \"%s\"" % (self.samp0.title, self.samp1.title)
+        else:
+            return "\"%s\" >= \"%s\"" % (self.samp0.title, self.samp1.title)
+
+    def spell_hA(self):
+        """Spell the alternate hypothesis"""
+        if self.dir == StatTool.TWO_TAILED_TEST:
+            return "\"%s\" is significantly different than \"%s\"" % (self.samp0.title, self.samp1.title)
+        elif self.dir == StatTool.ONE_TAILED_POSITIVE_TEST:
+            return "\"%s\" is significantly greater than \"%s\"" % (self.samp0.title, self.samp1.title)
+        else:
+            return "\"%s\" is significantly less than \"%s\"" % (self.samp0.title, self.samp1.title)
+
+    def confidence_interval(self):
+        """This is confidence interval for true difference between the two samples, so 
+        we shouldn't use the mean of a single sample as the center"""
+        md = abs(self.mean_difference())
+        merr = self.margin_of_error()
+        return (md - merr, md + merr)
+
+    def print_extra_results(self):
+        TTesting.print_extra_results(self)
+        print("Pooled variance          % .3f" % self.pooled_variance())
+        # print("Corrected SEM            % .3f" % self.corrected_SEM())
+
 
 if __name__ == "__main__":
     def usage():
         print("Usage:")
         print("  hypothesis_testing.py -z|-t [-i filename] [-o filename]")
         print("")
-        print("  -s           Input a sample and get its parameters")
-        print("  -z           Z Testing")
-        print("  -t           T Testing")
-        print("  -i filename  Read parameters from file")
-        print("  -o filename  Write parameters to file")
+        print("  -s             Input a sample and get its parameters")
+        print("  -z             Z Testing")
+        print("  -dt            Dependent T Testing")
+        print("  -it            Independent T Testing")
+        print("  -i filename    Read parameters from file")
+        print("  -o filename    Write parameters to file")
+        print("  -csv filename  Read data from this CSV file")
 
     class MyEncoder(json.JSONEncoder):
         def default(self, o):
             return o.__dict__
 
-    t = input_file = output_file = samp = None
+    t = input_file = output_file = samp = csv_file = None
     args = ""
     i = 1
     while i < len(sys.argv):
         arg = sys.argv[i]
-        if arg == "-t":
-            t = TTesting()
+        if arg == "-dt":
+            t = DependentTTesting()
+        elif arg == "-it":
+            t = IndependentTTesting()
         elif arg == "-z":
             t = ZTesting()
         elif arg in ["-h", "--help", "/?"]:
@@ -618,6 +757,9 @@ if __name__ == "__main__":
             output_file = sys.argv[i]
         elif arg == '-s':
             samp = Sample()
+        elif arg == '-csv':
+            i += 1
+            csv_file = sys.argv[i]
         else:
             args += " " + arg
         i += 1
@@ -644,14 +786,16 @@ if __name__ == "__main__":
         class_name = d['class']
         if class_name == 'ZTesting':
             t = ZTesting()
-        elif class_name == "TTesting":
-            t = TTesting()
+        elif class_name == "DependentTTesting":
+            t = DependentTTesting()
+        elif class_name == "IndependentTTesting":
+            t = IndependentTTesting()
         else:
             sys.stderr.write("Error: invalid class %s\n\n" % class_name)
             sys.exit(1)
         t.load_from_dict(d)
     else:
-        t.input_wizard()
+        t.input_wizard(csv_filename=csv_file, independent_t_test=t.__class__.__name__ == "IndependentTTesting")
         print("End of input wizard")
         print("")
 

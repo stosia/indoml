@@ -23,6 +23,7 @@
         "sd": 6.0, 
         "title": "Medidation patients"
     }, 
+    "samp_dependent": false,
     "treatment_title": "meditation", 
     "dir": "t"
 }

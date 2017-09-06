@@ -25,5 +25,6 @@
         "sd": 0.09, 
         "title": "Trained sample"
     }, 
+    "samp_dependent": false,
     "treatment_title": "new training technique"
 }

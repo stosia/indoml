@@ -1,0 +1,41 @@
+{
+    "alpha": 0.01, 
+    "class": "IndependentTTesting", 
+    "dir": "t", 
+    "expected_difference": 0.0, 
+    "results_title": "results", 
+    "samp0": {
+        "is_population": false, 
+        "mean": 12.0, 
+        "members": [
+            10.0, 
+            13.0, 
+            15.0, 
+            10.0
+        ], 
+        "n": 4, 
+        "notes": "", 
+        "orig_mean": 12.0, 
+        "orig_sd": 2.449489742783178, 
+        "sd": 2.449489742783178, 
+        "title": "Y"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 3.0, 
+        "members": [
+            2.0, 
+            -3.0, 
+            5.0, 
+            4.0, 
+            7.0
+        ], 
+        "n": 5, 
+        "notes": "", 
+        "orig_mean": 3.0, 
+        "orig_sd": 3.8078865529319543, 
+        "sd": 3.8078865529319543, 
+        "title": "X"
+    }, 
+    "treatment_title": "treatment"
+}

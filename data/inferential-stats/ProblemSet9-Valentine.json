@@ -25,5 +25,6 @@
         "sd": 102.85912696499032, 
         "title": "Last 5 years"
     }, 
+    "samp_dependent": false,
     "treatment_title": "New strategy"
 }

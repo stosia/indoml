@@ -1,0 +1,63 @@
+{
+    "alpha": 0.05, 
+    "class": "IndependentTTesting", 
+    "dir": "t", 
+    "results_title": "results", 
+    "samp0": {
+        "is_population": false, 
+        "mean": 8.944444444444445, 
+        "members": [
+            9.0, 
+            5.0, 
+            6.0, 
+            11.0, 
+            8.0, 
+            5.0, 
+            7.0, 
+            13.0, 
+            12.0, 
+            13.0, 
+            9.0, 
+            8.0, 
+            10.0, 
+            6.0, 
+            11.0, 
+            9.0, 
+            7.0, 
+            12.0
+        ], 
+        "n": 18, 
+        "notes": "", 
+        "orig_mean": 8.944444444444445, 
+        "orig_sd": 2.6451336499586917, 
+        "sd": 2.6451336499586917, 
+        "title": "Average meal prices at restaurants in Gettysburg ($)"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 11.142857142857142, 
+        "members": [
+            11.0, 
+            10.0, 
+            12.0, 
+            9.0, 
+            8.0, 
+            13.0, 
+            14.0, 
+            15.0, 
+            12.0, 
+            11.0, 
+            13.0, 
+            8.0, 
+            9.0, 
+            11.0
+        ], 
+        "n": 14, 
+        "notes": "", 
+        "orig_mean": 11.142857142857142, 
+        "orig_sd": 2.1788191176076888, 
+        "sd": 2.1788191176076888, 
+        "title": "Average meal prices at restaurants in Wilma ($)"
+    }, 
+    "treatment_title": "treatment"
+}

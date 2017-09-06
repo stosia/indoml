@@ -1,6 +1,6 @@
 {
     "alpha": 0.05, 
-    "class": "TTesting", 
+    "class": "DependentTTesting", 
     "dir": "p", 
     "results_title": "words per sentence", 
     "samp0": {
@@ -25,5 +25,6 @@
         "sd": 2.9546573405388314, 
         "title": "8 year old sample"
     }, 
+    "samp_dependent": true,
     "treatment_title": "Aging"
 }

@@ -1,6 +1,6 @@
 {
     "alpha": 0.05, 
-    "class": "TTesting", 
+    "class": "DependentTTesting", 
     "dir": "n", 
     "results_title": "number of accidents", 
     "samp0": {
@@ -47,5 +47,6 @@
         "sd": 1.3333333333333333, 
         "title": "Post-test"
     }, 
+    "samp_dependent": true,
     "treatment_title": "new law"
 }
