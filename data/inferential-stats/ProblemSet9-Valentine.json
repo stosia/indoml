@@ -1,0 +1,29 @@
+{
+    "alpha": 0.01, 
+    "class": "ZTesting", 
+    "dir": "p", 
+    "results_title": "Sales", 
+    "samp0": {
+        "is_population": true, 
+        "mean": 7895.0, 
+        "members": null, 
+        "n": null, 
+        "notes": "", 
+        "orig_mean": 7895.0, 
+        "orig_sd": 230.0, 
+        "sd": 230.0, 
+        "title": "Average Sales"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 9640.0, 
+        "members": null, 
+        "n": 5, 
+        "notes": "SD is derived from population", 
+        "orig_mean": 9640.0, 
+        "orig_sd": null, 
+        "sd": 102.85912696499032, 
+        "title": "Last 5 years"
+    }, 
+    "treatment_title": "New strategy"
+}

@@ -1,6 +1,7 @@
 {
+    "class": "ZTesting",
     "alpha": 0.05, 
-    "one_tailed_positive": true, 
+    "dir": "p", 
     "results_title": "score", 
     "samp0": {
         "is_population": true, 
@@ -22,6 +23,5 @@
         "sd": 2.0, 
         "title": "Interactive class"
     }, 
-    "treatment_title": "more interactive in-class activities", 
-    "two_tailed": false
+    "treatment_title": "more interactive in-class activities" 
 }

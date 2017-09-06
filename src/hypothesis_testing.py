@@ -1,33 +1,146 @@
 import copy
 import json
 import math
-from scipy import stats
 import sys
+
+from scipy import stats
+
 
 if sys.version_info >= (3, 2):
     raw_input = input
 
 
+class StatTool:
+    """Various statistic tools"""
+    TWO_TAILED_TEST = 't'
+    ONE_TAILED_NEGATIVE_TEST = 'n'
+    ONE_TAILED_POSITIVE_TEST = 'p'
+
+    @classmethod
+    def spell_directionality(cls, dir):
+        """Spell directionality of the test"""
+        assert dir in [cls.TWO_TAILED_TEST, cls.ONE_TAILED_NEGATIVE_TEST, cls.ONE_TAILED_POSITIVE_TEST]
+
+        if dir == StatTool.TWO_TAILED_TEST:
+            return "two tailed"
+        elif dir == StatTool.ONE_TAILED_POSITIVE_TEST:
+            return "one tailed in positive direction"
+        else:
+            return "one tailed in negative direction"
+
+    @classmethod
+    def probability_for_z(cls, z_score, dir):
+        """Calculate the actual probability value for the z_score.
+        
+        For positive z_score, this returns the probability that any samples
+        will have Z AT LEAST this value.
+        
+        For negative z_score, this returns the probability that any samples
+        will have Z LESS THAN this value.
+        """
+        assert dir in [cls.TWO_TAILED_TEST, cls.ONE_TAILED_NEGATIVE_TEST, cls.ONE_TAILED_POSITIVE_TEST]
+
+        # cdv is the probability that any sample will have LESS than z_score
+        cdv = stats.norm.cdf(z_score)
+
+        if dir == cls.TWO_TAILED_TEST:
+            if z_score < 0:
+                dir = cls.ONE_TAILED_NEGATIVE_TEST
+            else:
+                dir = cls.ONE_TAILED_POSITIVE_TEST
+
+        if dir == cls.ONE_TAILED_POSITIVE_TEST:
+            return 1 - cdv
+        else:
+            return cdv
+
+    @classmethod
+    def probability_for_t(cls, t_statistic, dir, df):
+        """Calculate the probability value for the specified t_statistics and DF.
+        
+        For positive t_statistic, this returns the probability that any samples
+        will have t-stat AT LEAST this value.
+        
+        For negative t_statistic, this returns the probability that any samples
+        will have t-stat LESS THAN this value.
+        """
+        # pval is the probability that any samples will have
+        # EQUAL OR MORE THAN abs(t_statistic).
+        #
+        # FWIW sf = survival function
+        pval = stats.t.sf(abs(t_statistic), df)
+        return pval
+
+    @classmethod
+    def z_critical_value(cls, alpha, dir):
+        """Return the Z-critical value for the specified alpha and directionality.
+        For two tailed, the alpha will be halved.
+        For one tailed negative, the z-critical value will be negative. 
+        """
+        if dir == cls.TWO_TAILED_TEST:
+            alpha /= 2.0
+
+        z = stats.norm.ppf(1 - alpha)
+        if dir == StatTool.ONE_TAILED_NEGATIVE_TEST:
+            z = 0 - z
+        return z
+
+    @classmethod
+    def t_critical_value(cls, alpha, dir, df):
+        """Return the T-critical value for the specified,  and directionality,
+        and degrees of freedom.
+        For two tailed, the alpha will be halved.
+        For one tailed negative, the t-critical value will be negative. 
+        """
+        if dir == cls.TWO_TAILED_TEST:
+            alpha /= 2.0
+
+        t = stats.t.ppf(1 - alpha, df)
+        if dir == cls.ONE_TAILED_NEGATIVE_TEST:
+            t = 0 - t
+        return t
+
+
 class Sample:
-    """Sample is an observation against a particular subject at one
-    point in time."""
+    """Sample is an observation against a particular subject at one point in time."""
     def __init__(self, is_population=None):
         self.title = ''
+        """Optional title for this sample"""
+
+        self.notes = ''
+        """Additional notes, such as treatment to SD and mean, if any."""
+
         self.is_population = is_population
+        """Treat as population instead of sample?"""
+
         self.mean = None  # The mean
-        self.orig_mean = None  # The original mean as was entered by user
-        self.sd = None  # standard deviation, may not be known
-        self.orig_sd = None  # Original sd as wes input, may not be known
-        self.n = None  # Number of samples, may not be known
-        self.members = None  # Individual sample, optional
+        """The sample mean. Must be specified."""
+
+        self.orig_mean = None
+        """The sample mean that was input by user. May be None"""
+
+        self.sd = None
+        """Sample standard deviation. May be None if not relevant"""
+
+        self.orig_sd = None
+        """The standard deviation that was input by user. May be None."""
+
+        self.n = None
+        """Number of samples. May be None if not relevant"""
+
+        self.members = None
+        """List of each individual sample. May be None."""
 
     def __str__(self):
         s = ''
         if True:
             s += "Title:                %s\n" % self.title
+            s += "Notes:                %s\n" % self.notes
             s += "Treat as population:  %s\n" % self.is_population
         if self.n is not None:
             s += "%s:                   % d\n" % ("N" if self.is_population else "n", self.n)
+        if self.members:
+            s += "Members:              %s\n" % (str(self.members))
         if True:
             s += "Mean:                % .3f\n" % (self.mean)
             if self.orig_mean is not None:
@@ -44,6 +157,7 @@ class Sample:
 
     def load_from_dict(self, d):
         self.title = d.get('title', '')
+        self.notes = d.get('notes', '')
         self.is_population = d.get('is_population', None)
         self.mean = d.get('mean', None)
         self.orig_mean = d.get('orig_mean', None)
@@ -87,7 +201,7 @@ class Sample:
         self.sd = self.orig_sd = Sample._calc_sd(self.members, self.is_population)
         print("Got %d samples, mean: %.3f, sd: %.3f" % (self.n, self.mean, self.sd))
 
-    def wizard(self, require_n=False):
+    def input_wizard(self, require_n=False, ref_pop=None):
         """Wizard to input the parameters from console."""
         s = raw_input('The name of this sample? [default] ').strip()
         if s and s != 'default':
@@ -124,9 +238,17 @@ class Sample:
                 if s:
                     self.mean = self.orig_mean = float(s)
 
-            s = raw_input('Standard deviation: ').strip()
+            if ref_pop and (not ref_pop.is_population or ref_pop.sd is None):
+                ref_pop = None
+
+            s = raw_input('Standard deviation%s: ' % (' (skip to calculate from population)' if ref_pop else '')).strip()
             if s:
                 self.sd = self.orig_sd = float(s)
+            elif ref_pop:
+                self.sd = ref_pop.sd / math.sqrt(self.n)
+                self.notes = "SD is derived from population"
+                print("Note: Calculating standard deviation as Standard Error from population.")
+                print("      SE: %.3f." % self.sd)
         else:
             self.input_samples()
 
@@ -143,10 +265,7 @@ class HypothesisTesting:
 
         # Parameters
         self.alpha = 0.05
-
-        # Directionality
-        self.two_tailed = True
-        self.one_tailed_positive = True
+        self.dir = None  # see StatTool.xxx_TEST constants
 
         # Description
         self.treatment_title = "treatment"
@@ -163,8 +282,7 @@ class HypothesisTesting:
 
         # Parameters
         self.alpha = d.get('alpha', 0.05)
-        self.two_tailed = d.get('two_tailed', True)
-        self.one_tailed_positive = d.get('one_tailed_positive', True)
+        self.dir = d.get('dir', None)
 
         # Description
         self.treatment_title = d.get('treatment_title', "treatment")
@@ -184,35 +302,31 @@ class HypothesisTesting:
             members = [self.samp1.members[i] - self.samp0.members[i] for i in range(len(self.samp1.members))]
             self.samp0.mean = 0.0
             self.samp0.sd = None
-            self.samp0.title += " (mean and sd is reset)"
+            self.samp0.notes = "mean and sd have been reset"
             self.samp1.mean = Sample._calc_mean(members)
             self.samp1.sd = Sample._calc_sd(members, self.samp1.is_population)
-            self.samp1.title += " (mean and sd are difference)"
+            self.samp1.notes = "mean and sd are difference from sample-0"
         elif self.samp0.is_population == False and self.samp1.is_population == False and \
-             self.samp0.sd is not None and self.samp1.sd is not None:
+             self.samp0.orig_sd is not None and self.samp1.orig_sd is not None:
             # Lesson 7 problem set 10a
             print("Note: ")
             print("   Looks like we have two samples. Assuming these are dependent samples.")
             print("   Thus we will be using the difference instead.")
             self.samp1.sd = self.standard_deviation_difference()
-            self.samp1.title += " (sd is difference)"
-            self.samp0.sd = 0
-            self.samp0.title += " (after sd reset)"
-        elif self.samp1.sd is None and self.samp1.is_population == False and \
-             self.samp0.is_population and self.samp0.sd is not None:
-            print("Note: ")
-            print("   SD for second sample is missing. Calculating the SD as SE from population.")
-            self.samp1.sd = self.samp0.sd / math.sqrt(self.samp1.n)
-            print("   SE: %.3f." % self.samp1.sd)
+            self.samp1.notes = "sd is difference from sample-0"
+            # self.samp0.sd = 0
+            # self.samp0.notes = "sd has been reset"
 
-    def wizard(self):
+
+    def input_wizard(self):
         """Wizard to input the parameters from console."""
         print("Input the first sample (samp0)")
-        self.samp0 = Sample().wizard()
+        self.samp0 = Sample().input_wizard()
 
         print("")
         print("Input the second sample (samp1)")
-        self.samp1 = Sample(is_population=False).wizard(require_n=True)
+        self.samp1 = Sample(is_population=False).input_wizard(require_n=True,
+                                                              ref_pop=self.samp0 if self.samp0.is_population else None)
 
         print("Mean difference: %.3f" % self.mean_difference())
 
@@ -228,49 +342,39 @@ class HypothesisTesting:
         if s:
             self.results_title = s
 
-        s = raw_input('Two tailed (t), one tailed negative (n), or one tailed positive (p) (t/n/p)? [t] ').strip()
-        if s:
-            s = s.strip().lower()
-            assert s in ['t', 'n', 'p']
-            self.two_tailed = s == 't'
-            self.one_tailed_positive = s == 'p'
+        dirs = [StatTool.TWO_TAILED_TEST, StatTool.ONE_TAILED_NEGATIVE_TEST, StatTool.ONE_TAILED_POSITIVE_TEST]
+        self.dir = ''
+        while self.dir not in dirs:
+            self.dir = raw_input('Directionality: Two tailed (t), one tailed negative (n), or one tailed positive (p) (t/n/p)? [t] ').strip()
 
         s = raw_input("Alpha: [%.3f] " % self.alpha).strip()
         if s:
             self.alpha = float(s)
 
-        print("critical value: %.3f" % self.critical())
+        print("Critical value: %.3f" % self.critical())
         return self
 
     def spell_h0(self):
         """Spell the null hypothesis"""
-        if self.two_tailed:
-            return "%s DOES NOT change %s" % (self.treatment_title, self.results_title)
+        if self.dir == StatTool.TWO_TAILED_TEST:
+            return "\"%s\" DOES NOT change \"%s\"" % (self.treatment_title, self.results_title)
+        elif self.dir == StatTool.ONE_TAILED_POSITIVE_TEST:
+            return "\"%s\" DOES NOT increase \"%s\"" % (self.treatment_title, self.results_title)
         else:
-            if self.one_tailed_positive:
-                return "%s DOES NOT increase %s" % (self.treatment_title, self.results_title)
-            else:
-                return "%s DOES NOT reduce %s" % (self.treatment_title, self.results_title)
+            return "\"%s\" DOES NOT reduce \"%s\"" % (self.treatment_title, self.results_title)
 
     def spell_hA(self):
         """Spell the alternate hypothesis"""
-        if self.two_tailed:
-            return "%s DOES change %s" % (self.treatment_title, self.results_title)
+        if self.dir == StatTool.TWO_TAILED_TEST:
+            return "\"%s\" DOES change \"%s\"" % (self.treatment_title, self.results_title)
+        elif self.dir == StatTool.ONE_TAILED_POSITIVE_TEST:
+            return "\"%s\" DOES increase \"%s\"" % (self.treatment_title, self.results_title)
         else:
-            if self.one_tailed_positive:
-                return "%s DOES increase %s" % (self.treatment_title, self.results_title)
-            else:
-                return "%s DOES reduce %s" % (self.treatment_title, self.results_title)
+            return "\"%s\" DOES reduce \"%s\"" % (self.treatment_title, self.results_title)
 
     def spell_type_of_test(self):
         """Spell the type of t-test"""
-        if self.two_tailed:
-            return "two tailed"
-        else:
-            if self.one_tailed_positive:
-                return "one tailed in positive direction"
-            else:
-                return "one tailed in negative direction"
+        return StatTool.spell_directionality(self.dir)
 
     def mean_difference(self):
         """The mean difference"""
@@ -278,22 +382,21 @@ class HypothesisTesting:
 
     def standard_deviation_difference(self):
         """Standard deviation of the differences"""
-        return math.sqrt(self.samp0.sd ** 2 + self.samp1.sd ** 2)
+        return math.sqrt(self.samp0.orig_sd ** 2 + self.samp1.orig_sd ** 2)
 
     def fall_in_critical_region(self):
         """Determine if the standard score falls IN the critical
         region"""
         score = self.score()
         crit = self.critical()
-        if self.two_tailed:
+        if self.dir == StatTool.TWO_TAILED_TEST:
             # TODO: with equal or not?
             return score <= -crit or score > crit
+        # TODO: with equal or not?
+        elif self.dir == StatTool.ONE_TAILED_POSITIVE_TEST:
+            return score > crit
         else:
-            # TODO: with equal or not?
-            if self.one_tailed_positive:
-                return score > crit
-            else:
-                return score <= crit
+            return score <= crit
 
     def is_statistically_significant(self):
         """Determine if the results are not likely due to chance."""
@@ -331,16 +434,16 @@ class HypothesisTesting:
         pass
 
     def print_report(self):
-        print("Sample-0:")
-        print("---------")
+        print("Sample-0: %s" % self.samp0.title)
+        print("-" * 70)
         print(str(self.samp0))
 
-        print("Sample-1:")
-        print("---------")
+        print("Sample-1: %s" % self.samp1.title)
+        print("-" * 70)
         print(str(self.samp1))
 
         print("Various descriptions:")
-        print("---------------------")
+        print("-" * 70)
         print("The dependent variable is: %s" % self.results_title)
         print("The treatment            : %s" % self.treatment_title)
         print("Null hypothesis          : %s" % self.spell_h0())
@@ -348,18 +451,18 @@ class HypothesisTesting:
         print("Type of test             : %s" % self.spell_type_of_test())
         print("")
         print("Parameters:")
-        print("-----------")
+        print("-" * 70)
         print("alpha: %.3f" % self.alpha)
         self.print_extra_params()
         print("")
         print("Results:")
-        print("-----------")
+        print("-" * 70)
         print("mean difference:         % .3f" % self.mean_difference())
-        if self.samp0.sd is not None and self.samp1.sd is not None:
+        if self.samp0.orig_sd is not None and self.samp1.orig_sd is not None:
             print("SD difference:           % .3f" % self.standard_deviation_difference())
         print("SEM:                     % .3f" % self.SEM())
-        print("z/t-critical             % .3f" % self.critical())
-        print("score (z-score/t-stat)   % .3f" % self.score())
+        print("%-15s          % .3f" % (self.critical_title(), self.critical()))
+        print("%-15s          % .3f" % (self.score_title(), self.score()))
         print("p-value:                 % .3f" % self.p_value())
         self.print_extra_results()
         print("Margin of error:         % .3f" % self.margin_of_error())
@@ -368,10 +471,10 @@ class HypothesisTesting:
         print("Is statistically significant: %s" % self.is_statistically_significant())
         print("")
         print("Conclusions:")
-        print("------------")
+        print("-" * 70)
         print(" - %s" % (self.spell_hA() if self.fall_in_critical_region() else self.spell_h0()))
-        print(" - %s" % ("The null hypothesis is rejected" if self.fall_in_critical_region() else "Failed to reject the null hypothesis"))
-        print("   because %s" % self.spell_reason())
+        sys.stdout.write(" - %s" % ("The null hypothesis is rejected" if self.fall_in_critical_region() else "Failed to reject the null hypothesis"))
+        print(" because %s" % self.spell_reason())
         self.print_extra_conclusions()
 
 
@@ -391,33 +494,34 @@ class ZTesting(HypothesisTesting):
         """The Z-score"""
         return self.mean_difference() / self.SEM()
 
+    def score_title(self):
+        """The name for the score"""
+        return "Z-score"
+
     def critical(self):
         """Z-critical value for the specified alpha and test specification"""
-        a = self.alpha / 2.0 if self.two_tailed else self.alpha
-        z_critical_ = stats.norm.ppf(1 - a)
-        if not self.two_tailed and not self.one_tailed_positive:
-            z_critical_ = 0 - z_critical_
-        return z_critical_
+        return StatTool.z_critical_value(self.alpha, self.dir)
+
+    def critical_title(self):
+        """The name for the critical value"""
+        return "z-critical"
 
     def margin_of_error(self):
         """Margin of error value"""
-        two_tailed_t_critical = stats.norm.ppf(1 - self.alpha / 2)
-        return two_tailed_t_critical * self.SEM()
+        z_critical2 = StatTool.z_critical_value(self.alpha, StatTool.TWO_TAILED_TEST)
+        return z_critical2 * self.SEM()
 
     def p_value(self):
-        """The actual probability value given a z-score"""
-        z = self.score()
-        pval = stats.norm.cdf(abs(z))  # one sided
-        if self.two_tailed:
-            pval = pval / 2
-        return 1 - pval
+        return StatTool.probability_for_z(self.score(), self.dir)
 
     def print_extra_conclusions(self):
         print("")
-        print("Note:")
-        print("-----")
-        print(" - Type I error:  H0 is true, but we reject that")
-        print(" - Type II error: H1 is true, but we reject that")
+        print("Additional note:")
+        print("-" * 70)
+        if self.is_statistically_significant():
+            print(" - Type I error would be if H0 is true but we reject that")
+        else:
+            print(" - Type II error would be if H1 is true but we reject that")
 
 
 class TTesting(HypothesisTesting):
@@ -437,11 +541,7 @@ class TTesting(HypothesisTesting):
     def critical(self):
         """t-critical value for the specified confidence/alpha.
         Value may be negative!"""
-        a = self.alpha / 2.0 if self.two_tailed else self.alpha
-        t_critical_ = stats.t.ppf(1 - a, self.df())
-        if not self.two_tailed and not self.one_tailed_positive:
-            t_critical_ = 0 - t_critical_
-        return t_critical_
+        return StatTool.t_critical_value(self.alpha, self.dir, self.df())
 
     def t_statistics(self):
         """Returns the t-statistic value"""
@@ -450,18 +550,25 @@ class TTesting(HypothesisTesting):
     def score(self):
         return self.t_statistics()
 
+    def score_title(self):
+        """The name for the score"""
+        return "t-statistics"
+
+    def critical_title(self):
+        """The name for the critical value"""
+        return "t-critical"
+
     def margin_of_error(self):
-        two_tailed_t_critical = stats.t.ppf(1 - self.alpha / 2, self.df())
-        return two_tailed_t_critical * self.SEM()
+        """Get the margin of error value."""
+        # Margin of error always uses two tailed
+        t_critical2 = StatTool.t_critical_value(self.alpha,
+                                                StatTool.TWO_TAILED_TEST,
+                                                self.df())
+        return t_critical2 * self.SEM()
 
     def p_value(self):
         """The actual probability value"""
-        t = self.t_statistics()
-        pval = stats.t.sf(abs(t), self.df())  # one sided
-        if self.two_tailed:
-            return pval / 2
-        else:
-            return pval
+        return StatTool.probability_for_t(self.t_statistics(), self.dir, self.df())
 
     def r_squared(self):
         t = self.t_statistics()
@@ -516,26 +623,44 @@ if __name__ == "__main__":
         i += 1
 
     if samp:
-        samp.wizard()
+        samp.input_wizard()
         print(str(samp))
         sys.exit(0)
 
-    if not t:
+    if not t and not input_file:
         sys.stderr.write("Error: -t or -z must be specified\n\n")
         usage()
         sys.exit(1)
 
     if input_file:
+        if t:
+            sys.stderr.write("Error: -i cannot be used with -z nor -t")
+            sys.exit(1)
+
         with open(input_file) as f:
             body = f.read()
             d = json.loads(body)
+
+        class_name = d['class']
+        if class_name == 'ZTesting':
+            t = ZTesting()
+        elif class_name == "TTesting":
+            t = TTesting()
+        else:
+            sys.stderr.write("Error: invalid class %s\n\n" % class_name)
+            sys.exit(1)
         t.load_from_dict(d)
     else:
-        t.wizard()
+        t.input_wizard()
+        print("End of input wizard")
+        print("")
 
     if output_file:
         with open(output_file, 'wt') as f:
-            f.write(json.dumps(t.__dict__, indent=4, cls=MyEncoder, sort_keys=True))
+            d = copy.copy(t.__dict__)
+            d['class'] = t.__class__.__name__
+            f.write(json.dumps(d, indent=4, cls=MyEncoder, sort_keys=True))
 
-    print('=' * 50)
+    print("REPORT:")
+    print('=' * 70)
     t.print_report()

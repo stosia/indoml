@@ -1,11 +1,11 @@
 {
-    "treatment_title": "law to penalize talking on cell phone while driving", 
+    "alpha": 0.05, 
+    "class": "TTesting", 
+    "dir": "n", 
+    "results_title": "number of accidents", 
     "samp0": {
-        "title": "Pre-test (mean and sd is reset)", 
-        "orig_sd": 1.8135294011647258, 
-        "require_n": false, 
-        "n": 10, 
-        "orig_mean": 7.8, 
+        "is_population": false, 
+        "mean": 0.0, 
         "members": [
             8.0, 
             7.0, 
@@ -18,16 +18,16 @@
             8.0, 
             7.0
         ], 
+        "n": 10, 
+        "notes": "mean and sd have been reset", 
+        "orig_mean": 7.8, 
+        "orig_sd": 1.8135294011647258, 
         "sd": null, 
-        "is_population": false, 
-        "mean": 0.0
+        "title": "Pre-test"
     }, 
     "samp1": {
-        "title": "Post-test (mean and sd are difference)", 
-        "orig_sd": 1.9321835661585918, 
-        "require_n": true, 
-        "n": 10, 
-        "orig_mean": 4.8, 
+        "is_population": false, 
+        "mean": -3.0, 
         "members": [
             5.0, 
             6.0, 
@@ -40,12 +40,12 @@
             4.0, 
             4.0
         ], 
+        "n": 10, 
+        "notes": "mean and sd are difference from sample-0", 
+        "orig_mean": 4.8, 
+        "orig_sd": 1.9321835661585918, 
         "sd": 1.3333333333333333, 
-        "is_population": false, 
-        "mean": -3.0
+        "title": "Post-test"
     }, 
-    "two_tailed": false, 
-    "one_tailed_positive": false, 
-    "alpha": 0.05, 
-    "results_title": "number of accidents due to cell phone use"
+    "treatment_title": "new law"
 }

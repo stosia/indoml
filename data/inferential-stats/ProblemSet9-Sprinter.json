@@ -1,0 +1,29 @@
+{
+    "alpha": 0.05, 
+    "class": "ZTesting", 
+    "dir": "n", 
+    "results_title": "time to run 200m", 
+    "samp0": {
+        "is_population": true, 
+        "mean": 22.965, 
+        "members": null, 
+        "n": null, 
+        "notes": "", 
+        "orig_mean": 22.965, 
+        "orig_sd": 0.36, 
+        "sd": 0.36, 
+        "title": "Population of female sprinters"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 22.793, 
+        "members": null, 
+        "n": 16, 
+        "notes": "", 
+        "orig_mean": 22.793, 
+        "orig_sd": null, 
+        "sd": 0.09, 
+        "title": "Trained sample"
+    }, 
+    "treatment_title": "new training technique"
+}

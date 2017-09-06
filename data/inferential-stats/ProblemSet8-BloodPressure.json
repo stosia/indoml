@@ -1,0 +1,28 @@
+{
+    "alpha": 0.01, 
+    "class": "ZTesting",
+    "one_tailed_positive": false, 
+    "results_title": "blood pressure", 
+    "samp0": {
+        "is_population": true, 
+        "mean": 180.0, 
+        "members": null, 
+        "n": null, 
+        "orig_mean": 180.0, 
+        "orig_sd": 18.0, 
+        "sd": 18.0, 
+        "title": "Population"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 175.0, 
+        "members": null, 
+        "n": 9, 
+        "orig_mean": 175.0, 
+        "orig_sd": null, 
+        "sd": 6.0, 
+        "title": "Medidation patients"
+    }, 
+    "treatment_title": "meditation", 
+    "dir": "t"
+}

@@ -1,4 +1,5 @@
 {
+    "class": "ZTesting",
     "treatment_title": "Listening to music while studying", 
     "samp0": {
         "title": "population", 
@@ -18,8 +19,7 @@
         "is_population": false, 
         "mean": 28.0
     }, 
-    "two_tailed": false, 
-    "one_tailed_positive": true, 
+    "dir": "p", 
     "alpha": 0.05, 
     "results_title": "memory"
 }

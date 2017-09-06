@@ -1,25 +1,29 @@
 {
-    "treatment_title": "Aging", 
+    "alpha": 0.05, 
+    "class": "TTesting", 
+    "dir": "p", 
+    "results_title": "words per sentence", 
     "samp0": {
-        "title": "Sample for 4 year old children (after sd reset)", 
-        "require_n": false, 
-        "n": 1000, 
-        "members": null, 
-        "sd": 0, 
         "is_population": false, 
-        "mean": 3.0
+        "mean": 3.0, 
+        "members": null, 
+        "n": 1000, 
+        "notes": "", 
+        "orig_mean": 3.0, 
+        "orig_sd": 1.2, 
+        "sd": 1.2, 
+        "title": "4 year old sample"
     }, 
     "samp1": {
-        "title": "Sample for 8 year old children (sd is difference)", 
-        "require_n": true, 
-        "n": 1000, 
-        "members": null, 
-        "sd": 2.9546573405388314, 
         "is_population": false, 
-        "mean": 12.0
+        "mean": 12.0, 
+        "members": null, 
+        "n": 1000, 
+        "notes": "sd is difference from sample-0", 
+        "orig_mean": 12.0, 
+        "orig_sd": 2.7, 
+        "sd": 2.9546573405388314, 
+        "title": "8 year old sample"
     }, 
-    "two_tailed": false, 
-    "one_tailed_positive": true, 
-    "alpha": 0.05, 
-    "results_title": "number of words used"
+    "treatment_title": "Aging"
 }
