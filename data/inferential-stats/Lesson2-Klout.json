@@ -1,0 +1,29 @@
+{
+    "alpha": 0.05,
+    "one_tailed_positive": true,
+    "results_title": "Klout score",
+    "samp0": {
+        "is_population": true,
+        "mean": 37.72,
+        "members": null,
+        "n": 1048,
+        "orig_mean": 37.72,
+        "orig_sd": 16.04,
+        "require_n": false,
+        "sd": 16.04,
+        "title": "Klout population"
+    },
+    "samp1": {
+        "is_population": false,
+        "mean": 40.0,
+        "members": null,
+        "n": 35,
+        "orig_mean": 40.0,
+        "orig_sd": null,
+        "require_n": true,
+        "sd": 2.711254849169081,
+        "title": "Bieber tweeter users"
+    },
+    "treatment_title": "Using Bieber tweeter app",
+    "two_tailed": false
+}

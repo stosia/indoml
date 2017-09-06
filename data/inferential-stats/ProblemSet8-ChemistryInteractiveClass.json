@@ -1,0 +1,27 @@
+{
+    "alpha": 0.05, 
+    "one_tailed_positive": true, 
+    "results_title": "score", 
+    "samp0": {
+        "is_population": true, 
+        "mean": 68.0, 
+        "members": null, 
+        "n": null, 
+        "orig_mean": 68.0, 
+        "orig_sd": 10.0, 
+        "sd": 10.0, 
+        "title": "All existing classes"
+    }, 
+    "samp1": {
+        "is_population": false, 
+        "mean": 75.0, 
+        "members": null, 
+        "n": 25, 
+        "orig_mean": 75.0, 
+        "orig_sd": null, 
+        "sd": 2.0, 
+        "title": "Interactive class"
+    }, 
+    "treatment_title": "more interactive in-class activities", 
+    "two_tailed": false
+}

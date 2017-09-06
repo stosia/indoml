@@ -1,0 +1,25 @@
+{
+    "treatment_title": "Listening to music while studying", 
+    "samp0": {
+        "title": "population", 
+        "require_n": false, 
+        "n": null, 
+        "members": null, 
+        "sd": 6.0, 
+        "is_population": true, 
+        "mean": 25.0
+    }, 
+    "samp1": {
+        "title": "Sample under test", 
+        "require_n": true, 
+        "n": 36, 
+        "members": null, 
+        "sd": null, 
+        "is_population": false, 
+        "mean": 28.0
+    }, 
+    "two_tailed": false, 
+    "one_tailed_positive": true, 
+    "alpha": 0.05, 
+    "results_title": "memory"
+}

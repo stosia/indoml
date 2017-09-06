@@ -1,0 +1,25 @@
+{
+    "treatment_title": "Aging", 
+    "samp0": {
+        "title": "Sample for 4 year old children (after sd reset)", 
+        "require_n": false, 
+        "n": 1000, 
+        "members": null, 
+        "sd": 0, 
+        "is_population": false, 
+        "mean": 3.0
+    }, 
+    "samp1": {
+        "title": "Sample for 8 year old children (sd is difference)", 
+        "require_n": true, 
+        "n": 1000, 
+        "members": null, 
+        "sd": 2.9546573405388314, 
+        "is_population": false, 
+        "mean": 12.0
+    }, 
+    "two_tailed": false, 
+    "one_tailed_positive": true, 
+    "alpha": 0.05, 
+    "results_title": "number of words used"
+}
