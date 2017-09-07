@@ -21,14 +21,14 @@ class Anova:
     to see if any of it is significantly difference than the other. This test produces
     a value called F-ratio or F-statistic, which can be used to accept or reject our
     hypothesis by comparing it to a critical value.
-    
+
     The F-statistic is ratio between between-group variability and within-group
-    variability. Large F-statistic means between group variability is large, relative t 
+    variability. Large F-statistic means between group variability is large, relative t
     within group variability. Then we know that at least one pair of means is significantly
     different than the other. So we accept the alternate hypothesis.
-    
-    Small statistic means within group variability is large, relative to between group 
-    variability, and none of the means are significantly different from each other. 
+
+    Small statistic means within group variability is large, relative to between group
+    variability, and none of the means are significantly different from each other.
     So we accept the null hypothesis.
     """
 
@@ -101,7 +101,7 @@ class Anova:
         return "All samples are not significantly different (%s)" % (sym)
 
     def spell_hA(self):
-        """Spell the alternate hypothesis. 
+        """Spell the alternate hypothesis.
         """
         return "At least one sample is significantly different"
 
@@ -157,10 +157,9 @@ class Anova:
             return sum([samp.sum_of_squared_diffs() for samp in self.groups])
         return self.get_cached('ss_within', _calc)
 
-    @classmethod
-    def ss_total(cls, ss_b, ss_w):
+    def ss_total(self):
         """Calculate total variation"""
-        return ss_b + ss_w
+        return self.ss_between() + self.ss_within()
 
     def df_between(self):
         """Degree of freedom for between-group. Also called DF numerator."""
@@ -247,6 +246,12 @@ class Anova:
         else:
             return "p > %.3f (p=%.3f)" % (self.alpha, self.p_value())
 
+    def eta_squared(self):
+        """Get the proportion of total variation that is due to between-group differences
+        (explained variation).
+        """
+        return self.ss_between() / float(self.ss_total())
+
     def tukeys_hsd(self):
         """Calculate and return Tukey's HSD value.
         """
@@ -254,6 +259,19 @@ class Anova:
             qstar = StatTool.q_value(self.alpha, self.df_n(), self.df_d())
             return qstar * math.sqrt(self.mean_squares_within() / self.groups[0].n)
         return self.get_cached('tukeys_hsd', _calc)
+
+    def print_difference(self):
+        hsd = self.tukeys_hsd()
+        maxtitlelen = max([len(sample.title) for sample in self.groups])
+        for i in range(len(self.groups)):
+            grp0 = self.groups[i]
+            for j in range(i + 1, len(self.groups)):
+                grp1 = self.groups[j]
+                abs_diff = abs(grp0.mean - grp1.mean)
+                cohens_d = (grp0.mean - grp1.mean) / math.sqrt(self.mean_squares_within())
+                relation = '!=' if abs_diff > hsd else ' ='
+                print("%*s  %s  %s  abs.diff: %.3f, Cohen's d: %.3f" %
+                      (maxtitlelen, grp0.title, relation, grp1.title, abs_diff, cohens_d))
 
     def print_report(self):
         print("ANOVA REPORT:")
@@ -288,6 +306,11 @@ class Anova:
         print("Fall in critical region:   %s" % self.fall_in_critical_region())
         print("Statistically significant: %s" % self.is_statistically_significant())
         print("Tukey's HSD              % .3f" % self.tukeys_hsd())
+        print("Eta squared              % .3f" % self.eta_squared())
+        print("")
+        print("Difference matrix:")
+        print("-" * 70)
+        self.print_difference()
         print("")
         print("Conclusions:")
         print("-" * 70)
