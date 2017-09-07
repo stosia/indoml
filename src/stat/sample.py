@@ -120,7 +120,7 @@ class Sample:
         """
         if not s:
             s = read_input('Individual samples (space or comma separated)')
-        self.members = re.findall(r"[\w']+", s)
+        self.members = re.findall(r"[\w\.']+", s)
         self.members = [m.strip() for m in self.members]
         self.members = [float(m) for m in self.members if m]
         self._update_parameters()
@@ -186,10 +186,7 @@ class Sample:
         """Return the sum of squared difference between each member
         and the mean.
         """
-        if self.members:
-            return sum([(x - self.mean) ** 2 for x in self.members])
-        else:
-            return -1
+        return (self.sd ** 2) * (self.n if self.is_population else (self.n - 1))
 
     def print_report(self):
         print(str(self))

@@ -84,7 +84,7 @@ class Anova:
         else:
             while True:
                 samp = Sample(title='samp%d' % len(self.groups), is_population=False)
-                samp.input_wizard(require_n=True, individual_sample=True)
+                samp.input_wizard(require_n=True)
                 if not samp.n:
                     break
                 self.groups.append(samp)
@@ -257,7 +257,9 @@ class Anova:
         """
         def _calc(self):
             qstar = StatTool.q_value(self.alpha, self.df_n(), self.df_d())
-            return qstar * math.sqrt(self.mean_squares_within() / self.groups[0].n)
+            msw = self.mean_squares_within()
+            k = len(self.groups)
+            return qstar * math.sqrt(sum([msw / grp.n for grp in self.groups]) / k)
         return self.get_cached('tukeys_hsd', _calc)
 
     def print_difference(self):
@@ -270,8 +272,8 @@ class Anova:
                 abs_diff = abs(grp0.mean - grp1.mean)
                 cohens_d = (grp0.mean - grp1.mean) / math.sqrt(self.mean_squares_within())
                 relation = '!=' if abs_diff > hsd else ' ='
-                print("%*s  %s  %s  abs.diff: %.3f, Cohen's d: %.3f" %
-                      (maxtitlelen, grp0.title, relation, grp1.title, abs_diff, cohens_d))
+                print("%*s %s %-*s  abs.diff: %.3f, Cohen's d: %.3f" %
+                      (maxtitlelen, grp0.title, relation, maxtitlelen, grp1.title, abs_diff, cohens_d))
 
     def print_report(self):
         print("ANOVA REPORT:")

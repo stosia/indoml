@@ -1,0 +1,50 @@
+{
+    "alpha": 0.05, 
+    "class": "Anova", 
+    "groups": [
+        {
+            "is_population": false, 
+            "mean": 5.7, 
+            "members": null, 
+            "n": 90, 
+            "notes": "", 
+            "orig_mean": 5.7, 
+            "orig_sd": 8.163, 
+            "sd": 8.163, 
+            "title": "Freshman"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 4.68, 
+            "members": null, 
+            "n": 44, 
+            "notes": "", 
+            "orig_mean": 4.68, 
+            "orig_sd": 6.473, 
+            "sd": 6.473, 
+            "title": "Sophomore"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 8.61, 
+            "members": null, 
+            "n": 23, 
+            "notes": "", 
+            "orig_mean": 8.61, 
+            "orig_sd": 10.803, 
+            "sd": 10.803, 
+            "title": "Junior"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 10.32, 
+            "members": null, 
+            "n": 31, 
+            "notes": "", 
+            "orig_mean": 10.32, 
+            "orig_sd": 10.238, 
+            "sd": 10.238, 
+            "title": "Senior"
+        }
+    ]
+}

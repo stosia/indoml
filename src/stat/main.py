@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     if input_file:
         if session:
-            sys.stderr.write("Error: -i cannot be used with -z nor -t")
+            sys.stderr.write("Error: -i cannot be used with CMD\n")
             sys.exit(1)
 
         with open(input_file) as f:
