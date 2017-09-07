@@ -1,0 +1,57 @@
+{
+    "alpha": 0.05, 
+    "class": "Anova", 
+    "groups": [
+        {
+            "is_population": false, 
+            "mean": 8.0, 
+            "members": [
+                8.0, 
+                7.0, 
+                10.0, 
+                6.0, 
+                9.0
+            ], 
+            "n": 5, 
+            "notes": "", 
+            "orig_mean": 8.0, 
+            "orig_sd": 1.5811388300841898, 
+            "sd": 1.5811388300841898, 
+            "title": "Single Child"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 6.0, 
+            "members": [
+                4.0, 
+                6.0, 
+                7.0, 
+                4.0, 
+                9.0
+            ], 
+            "n": 5, 
+            "notes": "", 
+            "orig_mean": 6.0, 
+            "orig_sd": 2.1213203435596424, 
+            "sd": 2.1213203435596424, 
+            "title": "Twin"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 4.0, 
+            "members": [
+                4.0, 
+                4.0, 
+                7.0, 
+                2.0, 
+                3.0
+            ], 
+            "n": 5, 
+            "notes": "", 
+            "orig_mean": 4.0, 
+            "orig_sd": 1.8708286933869707, 
+            "sd": 1.8708286933869707, 
+            "title": "Triplet"
+        }
+    ]
+}

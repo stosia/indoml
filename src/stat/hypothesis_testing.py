@@ -51,6 +51,11 @@ class HypothesisTesting:
         self.results_title = "results"
         """The name of the dependent variable"""
 
+    def name(self):
+        """The name of this test.
+        """
+        raise RuntimeError("Missing implementation")
+
     def load_from_dict(self, d):
         """Load this instance from a dictionary.
         """
@@ -270,7 +275,7 @@ class HypothesisTesting:
         pass
 
     def print_report(self):
-        print("REPORT:")
+        print("%s REPORT:" % self.name())
         print('=' * 70)
         print("Sample-0: %s" % self.samp0.title)
         print("-" * 70)
@@ -282,31 +287,31 @@ class HypothesisTesting:
 
         print("Various descriptions:")
         print("-" * 70)
-        print("The dependent variable is: %s" % self.results_title)
-        print("The treatment            : %s" % self.treatment_title)
-        print("Null hypothesis          : %s" % self.spell_h0())
-        print("Alternate hypothesis     : %s" % self.spell_hA())
-        print("Type of test             : %s" % self.spell_type_of_test())
+        print("The dependent variable is:  %s" % self.results_title)
+        print("The treatment            :  %s" % self.treatment_title)
+        print("Null hypothesis          :  %s" % self.spell_h0())
+        print("Alternate hypothesis     :  %s" % self.spell_hA())
+        print("Type of test             :  %s" % self.spell_type_of_test())
         print("")
         print("Parameters:")
         print("-" * 70)
-        print("alpha: %.3f" % self.alpha)
+        print("Alpha                    :  %.3f" % self.alpha)
         self.print_extra_params()
         print("")
         print("Results:")
         print("-" * 70)
-        print("mean difference:         % .3f" % self.mean_difference())
+        print("mean difference          : % .3f" % self.mean_difference())
         if self.samp0.orig_sd is not None and self.samp1.orig_sd is not None:
-            print("SD difference:           % .3f" % self.standard_deviation_difference())
-        print("SEM:                     % .3f" % self.SEM())
-        print("%-15s          % .3f" % (self.critical_title(), self.critical()))
-        print("%-15s          % .3f" % (self.score_title(), self.score()))
-        print("p-value:                 % .3f" % self.p_value())
+            print("SD difference            : % .3f" % self.standard_deviation_difference())
+        print("SEM                      : % .3f" % self.SEM())
+        print("%-15s          : % .3f" % (self.critical_title(), self.critical()))
+        print("%-15s          : % .3f" % (self.score_title(), self.score()))
+        print("p-value                  : % .3f" % self.p_value())
         self.print_extra_results()
-        print("Margin of error:         % .3f" % self.margin_of_error())
-        print("Confidence interval:     % .3f - %.3f" % self.confidence_interval())
-        print("Fall in critical region:   %s" % self.fall_in_critical_region())
-        print("Statistically significant: %s" % self.is_statistically_significant())
+        print("Margin of error          : % .3f" % self.margin_of_error())
+        print("Confidence interval      : % .3f - %.3f" % self.confidence_interval())
+        print("Fall in critical region  :  %s" % self.fall_in_critical_region())
+        print("Statistically significant:  %s" % self.is_statistically_significant())
         print("")
         print("Conclusions:")
         print("-" * 70)
@@ -325,6 +330,11 @@ class ZTesting(HypothesisTesting):
     or sampling errors."""
     def __init__(self):
         HypothesisTesting.__init__(self, samp0_is_population=True, samp1_is_population=False)
+
+    def name(self):
+        """The name of this test.
+        """
+        return "Z-Test"
 
     def _fix_samples(self):
         # Nothing to do
@@ -437,11 +447,11 @@ class TTesting(HypothesisTesting):
         return t ** 2 / (t ** 2 + self.df())
 
     def print_extra_params(self):
-        print("df:    %d" % self.df())
+        print("df                       :  %d" % self.df())
 
     def print_extra_results(self):
-        print("Cohen's d                % .3f" % self.cohens_d())
-        print("r^2:                     % .3f" % self.r_squared())
+        print("Cohen's d                : % .3f" % self.cohens_d())
+        print("r^2                      : % .3f" % self.r_squared())
 
 
 class DependentTTesting(TTesting):
@@ -449,6 +459,11 @@ class DependentTTesting(TTesting):
     parameters."""
     def __init__(self):
         TTesting.__init__(self)
+
+    def name(self):
+        """The name of this test.
+        """
+        return "Dependent T-Test"
 
     def _fix_samples(self):
         """Decide if the two samples are dependent and we should do something
@@ -490,6 +505,11 @@ class IndependentTTesting(TTesting):
     """
     def __init__(self):
         TTesting.__init__(self)
+
+    def name(self):
+        """The name of this test.
+        """
+        return "Independent T-Test"
 
     def _fix_samples(self):
         pass
@@ -558,7 +578,7 @@ class IndependentTTesting(TTesting):
 
     def print_extra_results(self):
         TTesting.print_extra_results(self)
-        print("Pooled variance          % .3f" % self.pooled_variance())
+        print("Pooled variance          : % .3f" % self.pooled_variance())
         # print("Corrected SEM            % .3f" % self.corrected_SEM())
 
 

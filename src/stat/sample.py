@@ -46,32 +46,32 @@ class Sample:
     def __str__(self):
         s = ''
         if True:
-            s += "Title:                %s\n" % self.title
-            s += "Notes:                %s\n" % self.notes
-            s += "Treat as population:  %s\n" % self.is_population
+            s += "Title                    :  %s\n" % self.title
+            s += "Notes                    :  %s\n" % self.notes
+            s += "Treat as population      :  %s\n" % self.is_population
         if self.n is not None:
-            s += "%s:                   % d\n" % ("N" if self.is_population else "n", self.n)
+            s += "%s                        : % d\n" % ("N" if self.is_population else "n", self.n)
         if self.members:
             if len(self.members) <= 12:
                 val = str(self.members)
             else:
                 val = '[' + ", ".join([str(v) for v in self.members[:8]]) + \
                       ' ... ' + ", ".join([str(v) for v in self.members[-2:]]) + ']'
-            s += "Members:              %s\n" % (val)
+            s += "Members                  :  %s\n" % (val)
         if True:
-            s += "Mean:                % .3f\n" % (self.mean)
+            s += "Mean                     : % .3f\n" % (self.mean)
             if self.orig_mean is not None:
-                s += "Orig. Mean:          % .3f\n" % (self.orig_mean)
+                s += "Orig. Mean               : % .3f\n" % (self.orig_mean)
             else:
-                s += "Orig. Mean:           None\n"
+                s += "Orig. Mean               :  None\n"
         if True:
-            s += "Sum of squared diffs:% .3f\n" % (self.sum_of_squared_diffs())
+            s += "Sum of squared diffs     : % .3f\n" % (self.sum_of_squared_diffs())
         if self.sd is not None:
-            s += "SD:                  % .3f\n" % (self.sd)
+            s += "SD                       : % .3f\n" % (self.sd)
             if self.orig_sd is not None:
-                s += "Orig. SD:            % .3f\n" % (self.orig_sd)
+                s += "Orig. SD                 : % .3f\n" % (self.orig_sd)
             else:
-                s += "Orig. SD:             None\n"
+                s += "Orig. SD                 :  None\n"
         return s
 
     def load_from_dict(self, d):
@@ -120,7 +120,7 @@ class Sample:
         """
         if not s:
             s = read_input('Individual samples (space or comma separated)')
-        self.members = re.findall(r"[\w\.']+", s)
+        self.members = re.findall(r"[\w\.\-\+]+", s)
         self.members = [m.strip() for m in self.members]
         self.members = [float(m) for m in self.members if m]
         self._update_parameters()
@@ -186,7 +186,12 @@ class Sample:
         """Return the sum of squared difference between each member
         and the mean.
         """
-        return (self.sd ** 2) * (self.n if self.is_population else (self.n - 1))
+        if self.sd is not None:
+            return (self.sd ** 2) * (self.n if self.is_population else (self.n - 1))
+        elif self.members:
+            return sum([(x - self.mean) ** 2 for x in self.members])
+        else:
+            return -1
 
     def print_report(self):
         print(str(self))
