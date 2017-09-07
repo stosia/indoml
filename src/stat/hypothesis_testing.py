@@ -1,328 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8-unix -*-
-import copy
-import csv
-import json
+from __future__ import absolute_import, print_function, division, unicode_literals
 import math
-import re
 import sys
 
-from scipy import stats
-
+from sample import Sample
+from tools import read_input, StatTool
 
 __author__ = "Benny Prijono <benny@stosia.com>"
 __copyright__ = "Copyright (C)2017 PT. Stosia Teknologi Investasi"
 __license__ = "GNU Affero AGPL (AGPL) version 3.0 or later"
-
-
-def read_input(title, default=None, choices=None, optional=False):
-    """Utility to prompt input from user via the console."""
-    msg = title
-    if choices:
-        msg += ' (%s)' % ('/'.join(choices))
-    msg += ':'
-    if default:
-        msg += ' [%s]' % (default)
-    msg += ' '
-
-    while True:
-        if sys.version_info >= (3, 0):
-            s = input(msg).strip()
-        else:
-            s = raw_input(msg).strip()
-        if default and not s:
-            s = default
-        if choices and s not in choices:
-            continue
-        if s or optional:
-            break
-
-    return s
-
-
-class StatTool:
-    """Various statistical tools"""
-
-    # The direction of hypothesis test
-    TWO_TAILED_TEST = 't'
-    ONE_TAILED_NEGATIVE_TEST = 'n'
-    ONE_TAILED_POSITIVE_TEST = 'p'
-
-    valid_dirs = [TWO_TAILED_TEST, ONE_TAILED_NEGATIVE_TEST,
-                  ONE_TAILED_POSITIVE_TEST]
-
-    @classmethod
-    def calc_mean(cls, array):
-        """Calculate the mean of the samples"""
-        return sum(array) / float(len(array))
-
-    @classmethod
-    def calc_sum_squared_diffs(cls, array):
-        """Calculate the sum of squared difference"""
-        mean = cls.calc_mean(array)
-        return sum([(m - mean) ** 2 for m in array])
-
-    @classmethod
-    def calc_sd(cls, array, is_population):
-        """Calculate the standard deviation of the samples, either treating
-        the sample as population or as sample"""
-        n = len(array)
-        mean = cls.calc_mean(array)
-        squared_diffs = [(m - mean) ** 2 for m in array]
-        sum_squared_diff = sum(squared_diffs)
-        if is_population:
-            return math.sqrt(sum_squared_diff / float(n))
-        else:
-            return math.sqrt(sum_squared_diff / float(n - 1))
-
-    @classmethod
-    def spell_directionality(cls, dir):
-        """Spell directionality of the test"""
-        assert dir in cls.valid_dirs
-
-        if dir == StatTool.TWO_TAILED_TEST:
-            return "two tailed"
-        elif dir == StatTool.ONE_TAILED_POSITIVE_TEST:
-            return "one tailed in positive direction"
-        else:
-            return "one tailed in negative direction"
-
-    @classmethod
-    def probability_for_z(cls, z_score, dir):
-        """Calculate the actual probability value for the z_score.
-        
-        For positive z_score, this returns the probability that any samples
-        will have Z AT LEAST this value.
-        
-        For negative z_score, this returns the probability that any samples
-        will have Z LESS THAN this value.
-        """
-        assert dir in cls.valid_dirs
-
-        # cdv is the probability that any sample will have LESS than z_score
-        cdv = stats.norm.cdf(z_score)
-
-        if dir == cls.TWO_TAILED_TEST:
-            if z_score < 0:
-                dir = cls.ONE_TAILED_NEGATIVE_TEST
-            else:
-                dir = cls.ONE_TAILED_POSITIVE_TEST
-
-        if dir == cls.ONE_TAILED_POSITIVE_TEST:
-            return 1 - cdv
-        else:
-            return cdv
-
-    @classmethod
-    def probability_for_t(cls, t_statistic, dir, df):
-        """Calculate the probability value for the specified t_statistics and DF.
-        
-        For one tailed positive, this returns the probability that any samples
-        will have t-stat AT LEAST this value.
-        
-        For one tailed negative, this returns the probability that any samples
-        will have t-stat LESS THAN this value.
-        
-        For two tailed test, this returns the probability that any samples will
-        have LESS than minus t_statistic OR MORE THAN t_statistic.
-        """
-        # pval is the probability that any samples will have
-        # EQUAL OR MORE THAN abs(t_statistic).
-        #
-        # FWIW sf = survival function
-        pval = stats.t.sf(abs(t_statistic), df)
-        return pval * 2 if dir == StatTool.TWO_TAILED_TEST else pval
-
-    @classmethod
-    def z_critical_value(cls, alpha, dir):
-        """Return the Z-critical value for the specified alpha and directionality.
-        For two tailed, the alpha will be halved.
-        For one tailed negative, the z-critical value will be negative. 
-        """
-        if dir == cls.TWO_TAILED_TEST:
-            alpha /= 2.0
-
-        z = stats.norm.ppf(1 - alpha)
-        if dir == StatTool.ONE_TAILED_NEGATIVE_TEST:
-            z = 0 - z
-        return z
-
-    @classmethod
-    def t_critical_value(cls, alpha, dir, df):
-        """Return the T-critical value for the specified,  and directionality,
-        and degrees of freedom.
-        For two tailed, the alpha will be halved.
-        For one tailed negative, the t-critical value will be negative. 
-        """
-        if dir == cls.TWO_TAILED_TEST:
-            alpha /= 2.0
-
-        t = stats.t.ppf(1 - alpha, df)
-        if dir == cls.ONE_TAILED_NEGATIVE_TEST:
-            t = 0 - t
-        return t
-
-
-class Sample:
-    """Sample is an observation against a particular subject at one point in time."""
-
-    def __init__(self, title='', is_population=None):
-        self.title = title
-        """Optional title for this sample"""
-
-        self.notes = ''
-        """Additional notes, such as treatment to SD and mean, if any."""
-
-        self.is_population = is_population
-        """Treat as population instead of sample?"""
-
-        self.mean = None  # The mean
-        """The sample mean. Must be specified."""
-
-        self.orig_mean = None
-        """The sample mean that was input by user. May be None"""
-
-        self.sd = None
-        """Sample standard deviation. May be None if not relevant"""
-
-        self.orig_sd = None
-        """The standard deviation that was input by user. May be None."""
-
-        self.n = None
-        """Number of samples. May be None if not relevant"""
-
-        self.members = None
-        """List of each individual sample. May be None."""
-
-    def __str__(self):
-        s = ''
-        if True:
-            s += "Title:                %s\n" % self.title
-            s += "Notes:                %s\n" % self.notes
-            s += "Treat as population:  %s\n" % self.is_population
-        if self.n is not None:
-            s += "%s:                   % d\n" % ("N" if self.is_population else "n", self.n)
-        if self.members:
-            s += "Members:              %s\n" % (str(self.members))
-        if True:
-            s += "Mean:                % .3f\n" % (self.mean)
-            if self.orig_mean is not None:
-                s += "Orig. Mean:          % .3f\n" % (self.orig_mean)
-            else:
-                s += "Orig. Mean:           None\n"
-        if True:
-            s += "Sum of squared diffs:% .3f\n" % (self.sum_of_squared_diffs())
-        if self.sd is not None:
-            s += "SD:                  % .3f\n" % (self.sd)
-            if self.orig_sd is not None:
-                s += "Orig. SD:            % .3f\n" % (self.orig_sd)
-            else:
-                s += "Orig. SD:             None\n"
-        return s
-
-    def load_from_dict(self, d):
-        """Load this Sample object from a dictionary.
-        """
-        self.title = d.get('title', '')
-        self.notes = d.get('notes', '')
-        self.is_population = d.get('is_population', None)
-        self.mean = d.get('mean', None)
-        self.orig_mean = d.get('orig_mean', None)
-        self.sd = d.get('sd', None)
-        self.orig_sd = d.get('orig_sd', None)
-        self.n = d.get('n', None)
-        self.members = d.get('members', None)
-
-    def load_from_csv(self, filename, column_idx, is_population=None):
-        """Load the members from CSV file. The title of the sample will be taken
-        from the column header.
-        """
-        f = open(filename)
-        r = csv.reader(f, delimiter=",")
-        head = r.next()
-        if len(head) < column_idx + 1:
-            raise RuntimeError("The CSV needs to have at least %d column(s)" % (column_idx + 1))
-
-        self.title = head[column_idx]
-        self.members = []
-        if is_population is not None:
-            self.is_population = is_population
-
-        for row in r:
-            if len(row) >= column_idx + 1:
-                cell = row[column_idx].strip()
-                if cell:
-                    self.members.append(float(cell))
-
-        self._update_parameters()
-
-    def input_samples(self, s=None):
-        """Parse the samples if given in s, or input from console.
-        """
-        if not s:
-            s = read_input('Individual samples (space or comma separated)')
-        self.members = re.findall(r"[\w']+", s)
-        self.members = [m.strip() for m in self.members]
-        self.members = [float(m) for m in self.members if m]
-        self._update_parameters()
-
-    def _update_parameters(self):
-        """Update mean sd etc after we have updated our samples
-        """
-        self.n = len(self.members)
-        self.mean = self.orig_mean = StatTool.calc_mean(self.members)
-        self.sd = self.orig_sd = StatTool.calc_sd(self.members, self.is_population)
-        print("Got %d samples, mean: %.3f, sd: %.3f" % (self.n, self.mean, self.sd))
-
-    def input_wizard(self, require_n=False, ref_pop=None):
-        """Wizard to input the parameters from console.
-        """
-        s = read_input('The name of this sample', default=self.title, optional=True)
-        if s:
-            self.title = s
-
-        if self.is_population is None:
-            s = read_input('Treat as population', default='n', choices=['y', 'n'])
-            self.is_population = True if s == 'y' else False
-
-        if not self.title:
-            self.title = "population" if self.is_population else "sample"
-
-        s = read_input('Input parameters or individual sample', default='p',
-                       choices=['p', 'i'])
-        if s == 'p':
-            s = read_input('n (number of data)', optional=not require_n)
-            if s:
-                self.n = int(s)
-
-            self.mean = self.orig_mean = float(read_input('Mean'))
-
-            if ref_pop and (not ref_pop.is_population or ref_pop.sd is None):
-                ref_pop = None
-
-            title = 'Standard deviation%s: ' % \
-                    (' (skip to calculate from population)' if ref_pop else '')
-            s = read_input(title)
-            if s:
-                self.sd = self.orig_sd = float(s)
-            elif ref_pop:
-                self.sd = ref_pop.sd / math.sqrt(self.n)
-                self.notes = "SD is derived from population"
-                print("Note: Calculating SD as Standard Error from population.")
-                print("      SE: %.3f." % self.sd)
-        else:
-            self.input_samples()
-
-        return self
-
-    def sum_of_squared_diffs(self):
-        """Return the sum of squared difference between each member
-        and the mean.
-        """
-        if self.members:
-            return sum([(x - self.mean) ** 2 for x in self.members])
-        else:
-            return -1
 
 
 class HypothesisTesting:
@@ -334,11 +21,11 @@ class HypothesisTesting:
     the population, and so on.
     """
 
-    def __init__(self):
-        self.samp0 = None
+    def __init__(self, samp0_is_population=None, samp1_is_population=None):
+        self.samp0 = Sample(title='samp0', is_population=samp0_is_population)
         """The first sample, is usually the population, or the pre-test sample"""
 
-        self.samp1 = None
+        self.samp1 = Sample(title='samp1', is_population=samp1_is_population)
         """The second sample, the post-test sample."""
 
         # Parameters
@@ -368,11 +55,9 @@ class HypothesisTesting:
         """Load this instance from a dictionary.
         """
         if d.get('samp0'):
-            self.samp0 = Sample()
             self.samp0.load_from_dict(d.get('samp0'))
 
         if d.get('samp1'):
-            self.samp1 = Sample()
             self.samp1.load_from_dict(d.get('samp1'))
 
         # Parameters
@@ -386,31 +71,33 @@ class HypothesisTesting:
 
         self._fix_samples()
 
+    def save_to_dict(self):
+        """Save this instance to a dictionary to be serialized.
+        """
+        return self.__dict__
+
     def _fix_samples(self):
         """Perform pre-processing to the samples after they are input
         """
         raise RuntimeError("Missing implementation")
 
-    def input_wizard(self, csv_filename=None, independent_t_test=False):
+    def input_wizard(self, csv_filename=None, csv_start_col_idx=0):
         """Wizard to input the parameters from console.
         """
         if csv_filename:
-            self.samp0 = Sample()
-            self.samp0.is_population = read_input('Treat first sample as population',
-                                                  default='n', choices="yn") == 'y'
-            self.samp0.load_from_csv(csv_filename, 0)
+            # self.samp0.is_population = read_input('Treat first sample as population',
+            #                                      default='n', choices="yn") == 'y'
+            self.samp0.load_from_csv(csv_filename, csv_start_col_idx + 0)
 
-            self.samp1 = Sample()
-            self.samp1.is_population = read_input('Treat second sample as population',
-                                                  default='n', choices="yn") == 'y'
-            self.samp1.load_from_csv(csv_filename, 1)
+            # self.samp1.is_population = read_input('Treat second sample as population',
+            #                                      default='n', choices="yn") == 'y'
+            self.samp1.load_from_csv(csv_filename, csv_start_col_idx + 1)
         else:
             print("Input the first sample (samp0)")
-            self.samp0 = Sample(title='samp0').input_wizard()
+            self.samp0.input_wizard()
 
             print("")
             print("Input the second sample (samp1)")
-            self.samp1 = Sample(title='samp1', is_population=False)
             ref_pop = self.samp0 if self.samp0.is_population else None
             self.samp1.input_wizard(require_n=True, ref_pop=ref_pop)
 
@@ -419,6 +106,7 @@ class HypothesisTesting:
         self._fix_samples()
 
         print("")
+        independent_t_test = self.__class__.__name__ == "IndependentTTesting"
         if not independent_t_test:
             self.treatment_title = read_input("The name of the treatment",
                                               default=self.treatment_title, optional=True)
@@ -426,7 +114,7 @@ class HypothesisTesting:
                                             default=self.results_title, optional=True)
 
         self.dir = read_input('Directionality: Two tailed (t), one tailed negative (n), or one tailed positive (p)',
-                              default=StatTool.TWO_TAILED_TEST, choices=valid_dirs)
+                              default=StatTool.TWO_TAILED_TEST, choices=StatTool.valid_dirs)
 
         self.alpha = float(read_input("Alpha", default='%.03f' % self.alpha))
         self.expected_difference = float(read_input("Expected difference", default='0.0',
@@ -582,6 +270,8 @@ class HypothesisTesting:
         pass
 
     def print_report(self):
+        print("REPORT:")
+        print('=' * 70)
         print("Sample-0: %s" % self.samp0.title)
         print("-" * 70)
         print(str(self.samp0))
@@ -634,7 +324,7 @@ class ZTesting(HypothesisTesting):
     know if the results happens due to certain cause and not just random chance
     or sampling errors."""
     def __init__(self):
-        HypothesisTesting.__init__(self)
+        HypothesisTesting.__init__(self, samp0_is_population=True, samp1_is_population=False)
 
     def _fix_samples(self):
         # Nothing to do
@@ -693,7 +383,7 @@ class TTesting(HypothesisTesting):
     """This hypothesis testing is used when we do not have the population
     parameters."""
     def __init__(self):
-        HypothesisTesting.__init__(self)
+        HypothesisTesting.__init__(self, samp0_is_population=False, samp1_is_population=False)
 
     def df(self):
         raise RuntimeError("Missing implementation")
@@ -765,7 +455,8 @@ class DependentTTesting(TTesting):
         about it"""
         samp_dependent = not self.samp0.is_population and not self.samp1.is_population
         if samp_dependent and self.samp0.members and self.samp1.members:
-            members = [self.samp1.members[i] - self.samp0.members[i] for i in range(len(self.samp1.members))]
+            members = [self.samp1.members[i] - self.samp0.members[i]
+                       for i in range(len(self.samp1.members))]
             self.samp0.mean = 0.0
             self.samp0.sd = None
             self.samp0.notes = "mean and sd have been reset"
@@ -871,94 +562,3 @@ class IndependentTTesting(TTesting):
         # print("Corrected SEM            % .3f" % self.corrected_SEM())
 
 
-if __name__ == "__main__":
-    def usage():
-        print("Usage:")
-        print("  hypothesis_testing.py -z|-t [-i filename] [-o filename]")
-        print("")
-        print("  -s             Input a sample and get its parameters")
-        print("  -ztest         Z Testing")
-        print("  -dttest        Dependent T Testing")
-        print("  -ittest        Independent T Testing")
-        print("  -i filename    Read parameters from file")
-        print("  -o filename    Write parameters to file")
-        print("  -csv filename  Read data from this CSV file")
-
-    class MyEncoder(json.JSONEncoder):
-        def default(self, o):
-            return o.__dict__
-
-    t = input_file = output_file = samp = csv_file = None
-    args = ""
-    i = 1
-    while i < len(sys.argv):
-        arg = sys.argv[i]
-        if arg == "-dttest":
-            t = DependentTTesting()
-        elif arg == "-ittest":
-            t = IndependentTTesting()
-        elif arg == "-ztest":
-            t = ZTesting()
-        elif arg in ["-h", "--help", "/?"]:
-            usage()
-            sys.exit(0)
-        elif arg == "-i":
-            i += 1
-            input_file = sys.argv[i]
-        elif arg == "-o":
-            i += 1
-            output_file = sys.argv[i]
-        elif arg == '-s':
-            samp = Sample()
-        elif arg == '-csv':
-            i += 1
-            csv_file = sys.argv[i]
-        else:
-            args += " " + arg
-        i += 1
-
-    if samp:
-        samp.input_wizard()
-        print(str(samp))
-        sys.exit(0)
-
-    if not t and not input_file:
-        sys.stderr.write("Error: -t or -z must be specified\n\n")
-        usage()
-        sys.exit(1)
-
-    if input_file:
-        if t:
-            sys.stderr.write("Error: -i cannot be used with -z nor -t")
-            sys.exit(1)
-
-        with open(input_file) as f:
-            body = f.read()
-            d = json.loads(body)
-
-        class_name = d['class']
-        if class_name == 'ZTesting':
-            t = ZTesting()
-        elif class_name == "DependentTTesting":
-            t = DependentTTesting()
-        elif class_name == "IndependentTTesting":
-            t = IndependentTTesting()
-        else:
-            sys.stderr.write("Error: invalid class %s\n\n" % class_name)
-            sys.exit(1)
-        t.load_from_dict(d)
-    else:
-        t.input_wizard(csv_filename=csv_file,
-                       independent_t_test=t.__class__.__name__ == "IndependentTTesting")
-        print("End of input wizard")
-        print("")
-
-    if output_file:
-        with open(output_file, 'wt') as f:
-            d = copy.copy(t.__dict__)
-            d['class'] = t.__class__.__name__
-            f.write(json.dumps(d, indent=4, cls=MyEncoder, sort_keys=True))
-
-    print("REPORT:")
-    print('=' * 70)
-    t.print_report()
