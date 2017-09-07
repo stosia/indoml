@@ -133,7 +133,7 @@ class Sample:
         self.sd = self.orig_sd = StatTool.calc_sd(self.members, self.is_population)
         print("Got %d samples, mean: %.3f, sd: %.3f" % (self.n, self.mean, self.sd))
 
-    def input_wizard(self, require_n=False, ref_pop=None,
+    def input_wizard(self, require_n=False, ref_pop=None, individual_sample=None,
                      csv_filename=None, csv_start_col_idx=0):
         """Wizard to input the parameters from console.
         """
@@ -153,9 +153,11 @@ class Sample:
         if not self.title:
             self.title = "population" if self.is_population else "sample"
 
-        s = read_input('Input parameters or individual sample', default='p',
-                       choices=['p', 'i'])
-        if s == 'p':
+        if individual_sample is None:
+            s = read_input('Input parameters or individual sample', default='p',
+                           choices=['p', 'i'])
+            individual_sample = s == 'i'
+        if not individual_sample:
             s = read_input('n (number of data)', optional=not require_n)
             if s:
                 self.n = int(s)

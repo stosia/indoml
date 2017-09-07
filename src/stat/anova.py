@@ -2,7 +2,9 @@
 # -*- coding: utf-8-unix -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
 
+import copy
 import csv
+import math
 import sys
 
 from sample import Sample
@@ -34,6 +36,8 @@ class Anova:
         self.groups = []
         self.alpha = 0.05
 
+        _cache = {}
+
     def _fix_samples(self):
         """Perform pre-processing to the samples after they are input
         """
@@ -50,11 +54,14 @@ class Anova:
             self.groups.append(samp)
 
         self._fix_samples()
+        self._cache = {}
 
     def save_to_dict(self):
         """Save this instance to a dictionary to be serialized.
         """
-        return self.__dict__
+        d = copy.copy(self.__dict__)
+        del d['_cache']
+        return d
 
     def load_from_csv(self, filename, csv_start_col_idx=0):
         """Load the groups from the CSV file. Each column is treated as one group.
@@ -77,7 +84,7 @@ class Anova:
         else:
             while True:
                 samp = Sample(title='samp%d' % len(self.groups), is_population=False)
-                samp.input_wizard(require_n=True)
+                samp.input_wizard(require_n=True, individual_sample=True)
                 if not samp.n:
                     break
                 self.groups.append(samp)
@@ -85,6 +92,7 @@ class Anova:
                 if more != 'y':
                     break
         self.alpha = float(read_input("Alpha", default='%.03f' % self.alpha))
+        self._cache = {}
 
     def spell_h0(self):
         """Spell the null hypothesis.
@@ -101,24 +109,53 @@ class Anova:
         """Spell the type of test"""
         return "Anova (always one directional positive)"
 
+    def get_cached(self, varname, _calc):
+        value = self._cache.get(varname, None)
+        if value is not None:
+            return value
+
+        value = _calc(self)
+        self._cache[varname] = value
+        return value
+
+    def N(self):
+        """Get total number of values.
+        """
+        def _calc(self):
+            return sum([samp.n for samp in self.groups])
+        return self.get_cached('N', _calc)
+
+    def grand_sum(self):
+        """Sum of all values."""
+        def _calc(self):
+            return sum([samp.mean * samp.n for samp in self.groups])
+        return self.get_cached('grand_sum', _calc)
+
     def grand_mean(self):
         """The grand mean is the mean of all samples.
         """
-        grand_sum = sum([samp.mean * samp.n for samp in self.groups])
-        n_total = sum([samp.n for samp in self.groups])
-        return grand_sum / float(n_total)
-
-    def _ss_between(self, grand_mean=None):
-        """Sum of squares between-groups."""
-        if grand_mean is None:
-            grand_sum = sum([samp.mean * samp.n for samp in self.groups])
-            N = sum([samp.n for samp in self.groups])
+        def _calc(self):
+            grand_sum = self.grand_sum()
+            N = self.N()
             grand_mean = grand_sum / float(N)
-        return sum([(samp.mean - grand_mean) ** 2 * samp.n for samp in self.groups])
+            return grand_mean
+        return self.get_cached('grand_mean', _calc)
 
-    def _ss_within(self):
+    def ss_between(self):
+        """Sum of squares between-groups."""
+        def _calc(self):
+            grand_sum = self.grand_sum()
+            N = self.N()
+            grand_mean = grand_sum / float(N)
+            val = sum([(samp.mean - grand_mean) ** 2 * samp.n for samp in self.groups])
+            return val
+        return self.get_cached('ss_between', _calc)
+
+    def ss_within(self):
         """Sum of squares within-groups."""
-        return sum([samp.sum_of_squared_diffs() for samp in self.groups])
+        def _calc(self):
+            return sum([samp.sum_of_squared_diffs() for samp in self.groups])
+        return self.get_cached('ss_within', _calc)
 
     @classmethod
     def ss_total(cls, ss_b, ss_w):
@@ -130,12 +167,16 @@ class Anova:
         k = len(self.groups)
         return float(k - 1)
 
-    def df_within(self, N=None):
+    def df_n(self):
+        return self.df_between()
+
+    def df_within(self):
         """Degree of freedom for within-group. Also called DF denumerator."""
-        if N is None:
-            N = sum([samp.n for samp in self.groups])
         k = len(self.groups)
-        return float(N - k)
+        return float(self.N() - k)
+
+    def df_d(self):
+        return self.df_within()
 
     @classmethod
     def df_total(cls, df_n, df_d):
@@ -143,24 +184,20 @@ class Anova:
         """
         return df_d + (df_n + 1) - 1
 
+    def mean_squares_between(self):
+        """Mean Squares between"""
+        return self.ss_between() / self.df_between()
+
+    def mean_squares_within(self):
+        """Mean Squares within"""
+        return self.ss_within() / self.df_within()
+
     def f_statistics(self):
         """Calculate the F-statistics or F-ratio
         """
-        grand_sum = sum([samp.mean * samp.n for samp in self.groups])
-        N = sum([samp.n for samp in self.groups])
-        grand_mean = grand_sum / float(N)
-
-        # k is number of samples
-        k = len(self.groups)
-
-        # bgvar is between-group variance
-        bgvar = self._ss_between(grand_mean) / self.df_between()
-
-        # wgvar is within-group variance
-        wgvar = self._ss_within() / self.df_within(N)
-
-        # The F-ratio
-        return bgvar / wgvar
+        def _calc(self):
+            return self.mean_squares_between() / self.mean_squares_within()
+        return self.get_cached('f_score', _calc)
 
     def score(self):
         return self.f_statistics()
@@ -175,7 +212,9 @@ class Anova:
         expressed in the same unit as the standard score (see score()), is the
         standard value where the desired confidence is reached.
         """
-        return StatTool.f_critical_value(self.alpha, self.df_between(), self.df_within())
+        def _calc(self):
+            return StatTool.f_critical_value(self.alpha, self.df_between(), self.df_within())
+        return self.get_cached('f_critical', _calc)
 
     def critical_title(self):
         """The name for the critical value.
@@ -196,7 +235,9 @@ class Anova:
     def p_value(self):
         """Returns the probability (in proportion) for the result's score.
         """
-        return StatTool.probability_for_f(self.score(), self.df_between(), self.df_within())
+        def _calc(self):
+            return StatTool.probability_for_f(self.score(), self.df_n(), self.df_d())
+        return self.get_cached('p_value', _calc)
 
     def spell_reason(self):
         """Spell the reason why we reject/fail to reject the null hypothesis.
@@ -205,6 +246,14 @@ class Anova:
             return "p < %.3f (p=%.3f)" % (self.alpha, self.p_value())
         else:
             return "p > %.3f (p=%.3f)" % (self.alpha, self.p_value())
+
+    def tukeys_hsd(self):
+        """Calculate and return Tukey's HSD value.
+        """
+        def _calc(self):
+            qstar = StatTool.q_value(self.alpha, self.df_n(), self.df_d())
+            return qstar * math.sqrt(self.mean_squares_within() / self.groups[0].n)
+        return self.get_cached('tukeys_hsd', _calc)
 
     def print_report(self):
         print("ANOVA REPORT:")
@@ -227,15 +276,18 @@ class Anova:
         print("Results:")
         print("-" * 70)
         print("Grand mean:              % .3f" % self.grand_mean())
-        print("Sum of sq. betwn groups: % .3f" % self._ss_between())
-        print("Sum of sq. withn groups: % .3f" % self._ss_within())
-        print("DF between groups:       % .3f" % self.df_between())
-        print("DF within groups:        % .3f" % self.df_within())
+        print("Sum of sq. betwn groups: % .3f" % self.ss_between())
+        print("Sum of sq. withn groups: % .3f" % self.ss_within())
+        print("DF between groups (df_n):% .3f" % self.df_between())
+        print("DF within groups (df_d): % .3f" % self.df_within())
+        print("Mean squares between:    % .3f" % self.mean_squares_between())
+        print("Mean squares within:     % .3f" % self.mean_squares_within())
         print("%-15s          % .3f" % (self.critical_title(), self.critical()))
         print("%-15s          % .3f" % (self.score_title(), self.score()))
         print("P-value:                 % .3f" % self.p_value())
         print("Fall in critical region:   %s" % self.fall_in_critical_region())
         print("Statistically significant: %s" % self.is_statistically_significant())
+        print("Tukey's HSD              % .3f" % self.tukeys_hsd())
         print("")
         print("Conclusions:")
         print("-" * 70)

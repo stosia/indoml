@@ -1,0 +1,51 @@
+{
+    "alpha": 0.05, 
+    "class": "Anova", 
+    "groups": [
+        {
+            "is_population": false, 
+            "mean": 3.0, 
+            "members": [
+                2.0, 
+                4.0, 
+                3.0
+            ], 
+            "n": 3, 
+            "notes": "", 
+            "orig_mean": 3.0, 
+            "orig_sd": 1.0, 
+            "sd": 1.0, 
+            "title": "Food A"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 6.0, 
+            "members": [
+                6.0, 
+                5.0, 
+                7.0
+            ], 
+            "n": 3, 
+            "notes": "", 
+            "orig_mean": 6.0, 
+            "orig_sd": 1.0, 
+            "sd": 1.0, 
+            "title": "Food B"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 9.0, 
+            "members": [
+                8.0, 
+                9.0, 
+                10.0
+            ], 
+            "n": 3, 
+            "notes": "", 
+            "orig_mean": 9.0, 
+            "orig_sd": 1.0, 
+            "sd": 1.0, 
+            "title": "Food C"
+        }
+    ]
+}

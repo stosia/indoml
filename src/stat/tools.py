@@ -6,6 +6,7 @@ import math
 import sys
 
 from scipy import stats
+import qsturng
 
 
 __author__ = "Benny Prijono <benny@stosia.com>"
@@ -175,3 +176,9 @@ class StatTool:
         """
         return stats.f.ppf(1 - alpha, df_n, df_d)
 
+    @classmethod
+    def q_value(cls, alpha, df_n, df_d):
+        """Get the Studentized Range Statistics (q*) value for the specified
+        alpha, df_n (between-group DF), and df_d (within-group DF)
+        """
+        return qsturng.qsturng(1 - alpha, df_n + 1, df_d)
