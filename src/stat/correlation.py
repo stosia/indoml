@@ -125,8 +125,23 @@ class Correlation(Session):
         conclusion1 = self.spell_conclusion_by_ci(ci)
         conclusion2 = self.spell_conclusion_by_p(p, self.alpha)
 
-        # We can also probably accept or reject the null hypothesis by looking at the CI
-        # If the CI's range does NOT cross 0, it means there IS correlation. True??
+        slope = r * grp1.sd / grp0.sd
+        """Slope for linear regression."""
+
+        intercept = grp1.mean - slope * grp0.mean
+        """The regression line always goes through the mean."""
+
+        def calc_se_est(x, y, slope, intercept):
+            # Calculate standard error of the estimate.
+            #  y = slope * x + intercept
+            ss = 0.0
+            n = len(x)
+            for i in range(n):
+                ss += (y[i] - (slope * x[i] + intercept)) ** 2
+            return math.sqrt(ss / float(n - 2))
+        se_est = calc_se_est(grp0.members, grp1.members, slope, intercept)
+        """Standard error of the estimate, measures the accuracy of our regression
+        line compared to the actual data."""
 
         print("DF                       : % d" % df)
         print("Pearson r                : % .3f" % r)
@@ -136,6 +151,10 @@ class Correlation(Session):
         print("P-value                  : % .5f" % p)
         print("Conclusion               : - %s" % conclusion1)
         print("                           - %s" % conclusion2)
+        print("Linear regression:")
+        print("Slope                    : % .3f" % slope)
+        print("Intercept                : % .3f" % intercept)
+        print("Standard err. of estimate: % .3f" % se_est)
         print("")
 
     def print_report(self):
