@@ -13,8 +13,10 @@ class Session:
         """
         raise RuntimeError("Missing implementation")
 
-    def input_wizard(self, csv_filename=None, csv_start_col_idx=0):
-        """Wizard to input the parameters from console.
+    def input_wizard(self, csv_filename=None, csv_indices=None):
+        """Wizard to input the parameters from console. If csv_filename is given, then data
+        will be loaded from the CSV file. The csv_indices is given, then the data will be
+        taken from the specified column indices.
         """
         raise RuntimeError("Missing implementation")
 
@@ -27,3 +29,4 @@ class Session:
         """Print report to stdout.
         """
         raise RuntimeError("Missing implementation")
+

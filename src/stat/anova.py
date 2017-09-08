@@ -64,24 +64,25 @@ class Anova(Session):
         del d['_cache']
         return d
 
-    def load_from_csv(self, filename, csv_start_col_idx=0):
+    def load_from_csv(self, filename, csv_indices=None):
         """Load the groups from the CSV file. Each column is treated as one group.
         """
         with open(filename) as f:
             r = csv.reader(f, delimiter=str(","))
             head = r.next()
-        for i, col in enumerate(head):
-            if i < csv_start_col_idx:
-                continue
+        if not csv_indices:
+            csv_indices = range(0, len(head))
+        for i in csv_indices:
+            col = head[i]
             samp = Sample(title=col, is_population=False)
             samp.load_from_csv(filename, i)
             self.groups.append(samp)
 
-    def input_wizard(self, csv_filename=None, csv_start_col_idx=0):
+    def input_wizard(self, csv_filename=None, csv_indices=None):
         """Read input from the console interactively.
         """
         if csv_filename:
-            self.load_from_csv(csv_filename, csv_start_col_idx=csv_start_col_idx)
+            self.load_from_csv(csv_filename, csv_indices=csv_indices)
         else:
             while True:
                 samp = Sample(title='samp%d' % len(self.groups), is_population=False)

@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 import math
 import sys
 
-from scipy import stats
+from scipy.stats import norm, t, f, pearsonr
 import qsturng
 
 
@@ -99,7 +99,7 @@ class StatTool:
         assert dir in cls.valid_dirs
 
         # cdv is the probability that any sample will have LESS than z_score
-        cdv = stats.norm.cdf(z_score)
+        cdv = norm.cdf(z_score)
 
         if dir == cls.TWO_TAILED_TEST:
             if z_score < 0:
@@ -129,7 +129,7 @@ class StatTool:
         # EQUAL OR MORE THAN abs(t_statistic).
         #
         # FWIW sf = survival function
-        pval = stats.t.sf(abs(t_statistic), df)
+        pval = t.sf(abs(t_statistic), df)
         return pval * 2 if dir == StatTool.TWO_TAILED_TEST else pval
 
     @classmethod
@@ -137,7 +137,7 @@ class StatTool:
         """Calculate the actual probability value for the f_score
         """
         # cdv is the probability that any sample will have LESS than f_score
-        cdv = stats.f.cdf(f_score, df_n, df_d)
+        cdv = f.cdf(f_score, df_n, df_d)
         return 1 - cdv
 
     @classmethod
@@ -149,7 +149,7 @@ class StatTool:
         if dir == cls.TWO_TAILED_TEST:
             alpha /= 2.0
 
-        z = stats.norm.ppf(1 - alpha)
+        z = norm.ppf(1 - alpha)
         if dir == StatTool.ONE_TAILED_NEGATIVE_TEST:
             z = 0 - z
         return z
@@ -164,17 +164,17 @@ class StatTool:
         if dir == cls.TWO_TAILED_TEST:
             alpha /= 2.0
 
-        t = stats.t.ppf(1 - alpha, df)
+        t_stat = t.ppf(1 - alpha, df)
         if dir == cls.ONE_TAILED_NEGATIVE_TEST:
-            t = 0 - t
-        return t
+            t_stat = 0 - t_stat
+        return t_stat
 
     @classmethod
     def f_critical_value(cls, alpha, df_n, df_d):
         """Return the F-critical value for the specified alpha and degree of
         freedoms. 
         """
-        return stats.f.ppf(1 - alpha, df_n, df_d)
+        return f.ppf(1 - alpha, df_n, df_d)
 
     @classmethod
     def q_value(cls, alpha, df_n, df_d):
@@ -182,3 +182,53 @@ class StatTool:
         alpha, df_n (between-group DF), and df_d (within-group DF)
         """
         return qsturng.qsturng(1 - alpha, df_n + 1, df_d)
+
+    @classmethod
+    def pearson_r(cls, x, y):
+        """Calculate Pearson r from the two arrays. Pearson r is a correlation
+        coefficient to quantify relationship, and the value ranges from -1 to 1.
+        """
+        return pearsonr(x, y)
+
+    @classmethod
+    def pearson_r_to_z(cls, r):
+        """Convert Pearson r to Z. 
+        """
+        return math.log((1 + r) / (1 - r)) / 2.0
+
+    @classmethod
+    def z_to_pearson_r(cls, z):
+        """Convert Z' value to Pearson r.
+        """
+        e = math.exp(2 * z)
+        return((e - 1) / (e + 1))
+
+    @classmethod
+    def pearson_r_confidence_interval(cls, r, alpha, n):
+        """Calculate the confidence interval for the specified r, alpha, and n.
+        Returns a sequence (low, hi)
+        """
+        z = cls.pearson_r_to_z(r)
+        se = 1.0 / math.sqrt(n - 3)
+        crit = cls.z_critical_value(alpha, cls.TWO_TAILED_TEST)
+
+        low = z - crit * se
+        hi = z + crit * se
+
+        return (cls.z_to_pearson_r(low), cls.z_to_pearson_r(hi))
+
+    @classmethod
+    def pearson_r_to_t(cls, r, n):
+        """Convert Pearson r to t. 
+        """
+        df = n - 2
+        return (r * math.sqrt(df)) / math.sqrt(1 - r ** 2)
+
+    @classmethod
+    def probability_for_r(cls, r, n):
+        """Probablity for Pearson r coefficient
+        """
+        df = n - 2
+        t_statistic = (r * math.sqrt(df)) / math.sqrt(1 - r ** 2)
+        p = cls.probability_for_t(t_statistic, cls.TWO_TAILED_TEST, df)
+        return p

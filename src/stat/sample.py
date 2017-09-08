@@ -136,7 +136,7 @@ class Sample(Session):
         print("Got %d samples, mean: %.3f, sd: %.3f" % (self.n, self.mean, self.sd))
 
     def input_wizard(self, require_n=False, ref_pop=None, individual_sample=None,
-                     csv_filename=None, csv_start_col_idx=0):
+                     csv_filename=None, csv_indices=None):
         """Wizard to input the parameters from console.
         """
         if not csv_filename:
@@ -149,7 +149,8 @@ class Sample(Session):
             self.is_population = True if s == 'y' else False
 
         if csv_filename:
-            self.load_from_csv(csv_filename, csv_start_col_idx)
+            col_idx = csv_indices[0] if csv_indices else 0
+            self.load_from_csv(csv_filename, col_idx)
             return self
 
         if not self.title:

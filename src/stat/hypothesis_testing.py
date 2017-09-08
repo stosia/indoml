@@ -89,17 +89,14 @@ class HypothesisTesting(Session):
         """
         raise RuntimeError("Missing implementation")
 
-    def input_wizard(self, csv_filename=None, csv_start_col_idx=0):
+    def input_wizard(self, csv_filename=None, csv_indices=None):
         """Wizard to input the parameters from console.
         """
         if csv_filename:
-            # self.samp0.is_population = read_input('Treat first sample as population',
-            #                                      default='n', choices="yn") == 'y'
-            self.samp0.load_from_csv(csv_filename, csv_start_col_idx + 0)
-
-            # self.samp1.is_population = read_input('Treat second sample as population',
-            #                                      default='n', choices="yn") == 'y'
-            self.samp1.load_from_csv(csv_filename, csv_start_col_idx + 1)
+            col_idx = csv_indices[0] if csv_indices else 0
+            self.samp0.load_from_csv(csv_filename, col_idx)
+            col_idx = csv_indices[1] if csv_indices and len(csv_indices) > 1 else col_idx + 1
+            self.samp1.load_from_csv(csv_filename, col_idx)
         else:
             print("Input the first sample (samp0)")
             self.samp0.input_wizard()

@@ -7,6 +7,7 @@ import json
 import sys
 
 from anova import Anova
+from correlation import Correlation
 from hypothesis_testing import ZTesting, DependentTTesting, IndependentTTesting
 from sample import Sample
 
@@ -30,21 +31,23 @@ if __name__ == "__main__":
         def default(self, o):
             return o.__dict__
 
+    classes = {
+        'sample': Sample,
+        'dttest': DependentTTesting,
+        'ittest': IndependentTTesting,
+        'ztest': ZTesting,
+        'anova': Anova,
+        'correlation': Correlation
+        }
+
     session = input_file = output_file = csv_file = None
+    cmds = ['-' + k for k in classes.keys()]
     args = ""
     i = 1
     while i < len(sys.argv):
         arg = sys.argv[i]
-        if arg == '-sample':
-            session = Sample()
-        elif arg == "-dttest":
-            session = DependentTTesting()
-        elif arg == "-ittest":
-            session = IndependentTTesting()
-        elif arg == "-ztest":
-            session = ZTesting()
-        elif arg == "-anova":
-            session = Anova()
+        if arg in cmds:
+            session = classes[arg[1:]]()
         elif arg in ["-h", "--help", "/?"]:
             usage()
             sys.exit(0)
@@ -76,17 +79,12 @@ if __name__ == "__main__":
             d = json.loads(body)
 
         class_name = d['class']
-        if class_name == 'ZTesting':
-            session = ZTesting()
-        elif class_name == "DependentTTesting":
-            session = DependentTTesting()
-        elif class_name == "IndependentTTesting":
-            session = IndependentTTesting()
-        elif class_name == "Anova":
-            session = Anova()
-        elif class_name == 'Sample':
-            session = Sample()
-        else:
+        for c in classes.itervalues():
+            if class_name == c.__name__:
+                session = c()
+                break
+
+        if not session:
             sys.stderr.write("Error: invalid class %s\n\n" % class_name)
             sys.exit(1)
         session.load_from_dict(d)
