@@ -15,7 +15,7 @@ __copyright__ = "Copyright (C)2017 PT. Stosia Teknologi Investasi"
 __license__ = "GNU Affero AGPL (AGPL) version 3.0 or later"
 
 
-class Correlation:
+class Correlation(Session):
     def __init__(self):
         self.groups = []
         self.alpha = 0.05
@@ -24,8 +24,8 @@ class Correlation:
         """Load this instance from a dictionary.
         """
         self.alpha = d.get('alpha', 0.05)
-        samples = d['samples']
-        for g in samples:
+        groups = d['groups']
+        for g in groups:
             samp = Sample()
             samp.load_from_dict(g)
             self.groups.append(samp)
@@ -66,45 +66,76 @@ class Correlation:
         """
         return self.__dict__
 
-    def print_correlation(self, grp0, grp1):
-        # x: predictor, explanatory, independent variable
-        # y: outcome, response, dependent variable
-        #
-        # correlation coefficient (r): to quantify relationship. Also called Pearson's r.
-        #      cov(x,y)
-        # r = ---------
-        #      Sx * Sy
-        #
-        # r^2 = % of variation in Y explained by variation in x
-        # r^2 = coefficient of determination
-        #
-        # r = correlation for the sample
-        # ρ (rho) = true correlation for population
+    @classmethod
+    def spell_conclusion_by_p(cls, p, alpha):
+        """Spell conclusion on whether we reject or fail to reject the null hypothesis
+        based on the pvalue.
+        """
+        if p <= alpha:
+            conclusion = "reject the null -> p(%.3f) < %.3f" % (p, alpha)
+        else:
+            conclusion = "accept the null -> p(%.3f) > %.3f" % (p, alpha)
+        return conclusion
 
+    @classmethod
+    def spell_conclusion_by_ci(cls, ci):
+        """Spell conclusion on whether we reject or fail to reject the null hypothesis
+        based on the confidence interval.
+        """
+        if ci[0] / ci[1] > 0:
+            conclusion = "reject the null: CI (%.3f - %.3f) doesn't cross zero" % (ci[0], ci[1])
+        else:
+            conclusion = "accept the null: CI (%.3f - %.3f) crosses zero" % (ci[0], ci[1])
+        return conclusion
+
+    def print_correlation(self, grp0, grp1):
         print("%s --> %s correlation" % (grp0.title, grp1.title))
         print('-' * 70)
-        r, pval1 = StatTool.pearson_r(grp0.members, grp1.members)
+
+        r, _ = StatTool.pearson_r(grp0.members, grp1.members)
+        """r, also called Pearson's r, is correlation coefficient, to quantify relationship.
+        r measures the correlatoin for the sample
+             cov(x,y)
+        r = ---------
+             Sx * Sy
+        """
+
+        r_squared = r ** 2
+        """"r squared (r^2):
+           r^2 = % of variation in Y explained by variation in x
+           r^2 = coefficient of determination
+        """
+
         df = grp0.n - 2
+        """"Degree of freedom. We substract one from each sample"""
+
+        # Convert r to t
         t = (r * math.sqrt(df)) / math.sqrt(1 - r ** 2)
+
+        # Calculate the probability for t
         p = pval2 = StatTool.probability_for_t(t, StatTool.TWO_TAILED_TEST, df)
 
         ci = StatTool.pearson_r_confidence_interval(r, self.alpha, grp0.n)
+        """
+        if ρ (rho) is true correlation for population, CI is the confidence interval
+        for ρ, meaning the range of likely values for the population correlation 
+        coefficient ρ.
+        """
 
-        if pval2 <= self.alpha:
-            conclusion = "reject the null -> p(%.3f) < %.3f" % (p, self.alpha)
-        else:
-            conclusion = "accept the null -> p(%.3f) > %.3f" % (p, self.alpha)
+        conclusion1 = self.spell_conclusion_by_ci(ci)
+        conclusion2 = self.spell_conclusion_by_p(p, self.alpha)
 
         # We can also probably accept or reject the null hypothesis by looking at the CI
         # If the CI's range does NOT cross 0, it means there IS correlation. True??
 
         print("DF                       : % d" % df)
         print("Pearson r                : % .3f" % r)
-        print("r^2 (coef of determ.)    : % .3f (%.2f%%)" % (r ** 2, r ** 2 * 100.0))
+        print("r^2 (coef of determ.)    : % .3f (%.2f%%)" % (r_squared, r_squared * 100.0))
         print("Confidence interval      : % .3f - %.3f" % ci)
         print("t-statistic              : % .3f" % t)
         print("P-value                  : % .5f" % p)
-        print("Conclusion               :  %s" % conclusion)
+        print("Conclusion               : - %s" % conclusion1)
+        print("                           - %s" % conclusion2)
         print("")
 
     def print_report(self):
@@ -126,3 +157,20 @@ class Correlation:
         for i in range(len(self.groups)):
             for j in range(i + 1, len(self.groups)):
                 self.print_correlation(self.groups[i], self.groups[j])
+
+    @classmethod
+    def simple_decision(cls, r, n, alphas):
+        """Decide whether to accept or reject the null hypothesis.
+        """
+        df = n - 2
+        t = (r * math.sqrt(df)) / math.sqrt(1 - r ** 2)
+        p = StatTool.probability_for_t(t, StatTool.TWO_TAILED_TEST, df)
+
+        for alpha in alphas:
+            ci = StatTool.pearson_r_confidence_interval(r, alpha, n)
+            conclusion1 = cls.spell_conclusion_by_ci(ci)
+            conclusion2 = cls.spell_conclusion_by_p(p, alpha)
+            print("For alpha=%.4f:" % alpha)
+            print(" - %s" % conclusion1)
+            print(" - %s" % conclusion2)
+            print("")
