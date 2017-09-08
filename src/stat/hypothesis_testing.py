@@ -1,18 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8-unix -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
+
 import math
 import sys
 
 from sample import Sample
+from session import Session
 from tools import read_input, StatTool
+
 
 __author__ = "Benny Prijono <benny@stosia.com>"
 __copyright__ = "Copyright (C)2017 PT. Stosia Teknologi Investasi"
 __license__ = "GNU Affero AGPL (AGPL) version 3.0 or later"
 
 
-class HypothesisTesting:
+class HypothesisTesting(Session):
     """Hypothesis testing is used to test whether some results happen because
     of a specific cause, rather than just random chance or sampling error.
     It is used for example to test whether the population has significantly

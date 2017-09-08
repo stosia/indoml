@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8-unix -*-
 from __future__ import absolute_import, print_function, division, unicode_literals
+
 import csv
 import re
 
+from session import Session
 from tools import read_input, StatTool
 
 
@@ -12,7 +14,7 @@ __copyright__ = "Copyright (C)2017 PT. Stosia Teknologi Investasi"
 __license__ = "GNU Affero AGPL (AGPL) version 3.0 or later"
 
 
-class Sample:
+class Sample(Session):
     """Sample is an observation against a particular subject at one point in time."""
 
     def __init__(self, title='', is_population=None):

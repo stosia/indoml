@@ -8,6 +8,7 @@ import math
 import sys
 
 from sample import Sample
+from session import Session
 from tools import read_input, StatTool
 
 
@@ -16,7 +17,7 @@ __copyright__ = "Copyright (C)2017 PT. Stosia Teknologi Investasi"
 __license__ = "GNU Affero AGPL (AGPL) version 3.0 or later"
 
 
-class Anova:
+class Anova(Session):
     """ANOVA, or Analysis of Variance, is used to analyze two or more groups (samples)
     to see if any of it is significantly difference than the other. This test produces
     a value called F-ratio or F-statistic, which can be used to accept or reject our
