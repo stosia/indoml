@@ -16,6 +16,10 @@ __license__ = "GNU Affero AGPL (AGPL) version 3.0 or later"
 
 
 class Correlation(Session):
+    """This measures the correlation between two groups and attempts to build linear regression
+    line to estimate the relation.
+    """
+
     def __init__(self):
         self.groups = []
         self.alpha = 0.05

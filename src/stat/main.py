@@ -7,6 +7,7 @@ import json
 import sys
 
 from anova import Anova
+from chisquare import ChiSquare
 from correlation import Correlation
 from hypothesis_testing import ZTesting, DependentTTesting, IndependentTTesting
 from sample import Sample
@@ -22,7 +23,7 @@ if __name__ == "__main__":
         print("Usage:")
         print("  stat CMD [-i filename] [-o filename] [-csv filename]")
         print("")
-        print("  CMD            -sample, -ztest, -dttest, -ittest, -anova")
+        print("  CMD            -sample, -ztest, -dttest, -ittest, -anova, -corr, -chi")
         print("  -i filename    Read parameters from file")
         print("  -o filename    Write parameters to file")
         print("  -csv filename  Read data from this CSV file")
@@ -37,7 +38,8 @@ if __name__ == "__main__":
         'ittest': IndependentTTesting,
         'ztest': ZTesting,
         'anova': Anova,
-        'correlation': Correlation
+        'corr': Correlation,
+        'chi': ChiSquare,
         }
 
     session = input_file = output_file = csv_file = None

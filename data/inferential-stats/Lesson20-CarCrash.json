@@ -1,0 +1,49 @@
+{
+    "alpha": 0.05, 
+    "class": "ChiSquare", 
+    "expected_index": null, 
+    "groups": [
+        {
+            "is_population": false, 
+            "mean": 25.0, 
+            "members": [
+                7.0, 
+                43.0
+            ], 
+            "n": 2, 
+            "notes": "", 
+            "orig_mean": 25.0, 
+            "orig_sd": 25.45584412271571, 
+            "sd": 25.45584412271571, 
+            "title": "Hit"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 25.0, 
+            "members": [
+                16.0, 
+                34.0
+            ], 
+            "n": 2, 
+            "notes": "", 
+            "orig_mean": 25.0, 
+            "orig_sd": 12.727922061357855, 
+            "sd": 12.727922061357855, 
+            "title": "Smashed"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 25.0, 
+            "members": [
+                6.0, 
+                44.0
+            ], 
+            "n": 2, 
+            "notes": "", 
+            "orig_mean": 25.0, 
+            "orig_sd": 26.870057685088806, 
+            "sd": 26.870057685088806, 
+            "title": "Control"
+        }
+    ]
+}

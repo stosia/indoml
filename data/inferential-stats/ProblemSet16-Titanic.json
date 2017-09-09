@@ -1,0 +1,35 @@
+{
+    "alpha": 0.05, 
+    "class": "ChiSquare", 
+    "expected_index": null, 
+    "groups": [
+        {
+            "is_population": false, 
+            "mean": 289.5, 
+            "members": [
+                299.0, 
+                280.0
+            ], 
+            "n": 2, 
+            "notes": "", 
+            "orig_mean": 289.5, 
+            "orig_sd": 13.435028842544403, 
+            "sd": 13.435028842544403, 
+            "title": "Cabin"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 356.0, 
+            "members": [
+                186.0, 
+                526.0
+            ], 
+            "n": 2, 
+            "notes": "", 
+            "orig_mean": 356.0, 
+            "orig_sd": 240.41630560342617, 
+            "sd": 240.41630560342617, 
+            "title": "Steerage"
+        }
+    ]
+}

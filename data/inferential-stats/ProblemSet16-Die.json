@@ -1,0 +1,43 @@
+{
+    "alpha": 0.05, 
+    "class": "ChiSquare", 
+    "expected_index": 1, 
+    "groups": [
+        {
+            "is_population": false, 
+            "mean": 4.0, 
+            "members": [
+                8.0, 
+                4.0, 
+                1.0, 
+                8.0, 
+                3.0, 
+                0.0
+            ], 
+            "n": 6, 
+            "notes": "", 
+            "orig_mean": 4.0, 
+            "orig_sd": 3.40587727318528, 
+            "sd": 3.40587727318528, 
+            "title": "Observed-0"
+        }, 
+        {
+            "is_population": false, 
+            "mean": 4.0, 
+            "members": [
+                4.0, 
+                4.0, 
+                4.0, 
+                4.0, 
+                4.0, 
+                4.0
+            ], 
+            "n": 6, 
+            "notes": "", 
+            "orig_mean": 4.0, 
+            "orig_sd": 0.0, 
+            "sd": 0.0, 
+            "title": "Expected"
+        }
+    ]
+}
