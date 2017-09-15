@@ -172,7 +172,7 @@ class Sample(Session):
 
             title = 'Standard deviation%s: ' % \
                     (' (skip to calculate from population)' if ref_pop else '')
-            s = read_input(title)
+            s = read_input(title, optional=True)
             if s:
                 self.sd = self.orig_sd = float(s)
             elif ref_pop:
